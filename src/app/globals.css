@@ -1,0 +1,392 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
+  }
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Custom smooth animations */
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+.animate-fade-in-up-delay {
+  animation: fadeInUp 0.6s ease-out 0.2s forwards;
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Enhanced button animations */
+button {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Smooth scale and color transitions */
+.btn-primary {
+  @apply bg-primary-blue text-white;
+  transition: background-color 0.4s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.btn-primary:hover {
+  @apply bg-blue-700;
+  transform: scale(1.03);
+}
+
+.btn-secondary {
+  @apply border-2 border-primary-blue text-primary-blue;
+  transition: all 0.4s ease;
+}
+
+.btn-secondary:hover {
+  @apply bg-primary-blue text-white;
+  transform: scale(1.03);
+}
+
+/* Hero Section Enhanced Animations */
+@keyframes hero-entrance {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth performance optimization */
+.animate-hero-title,
+.animate-hero-subtitle,
+.animate-hero-button-primary,
+.animate-hero-button-secondary,
+.animate-hero-image,
+.animate-logo-entrance,
+.animate-nav-item-1,
+.animate-nav-item-2,
+.animate-nav-item-3,
+.animate-header-login {
+  will-change: opacity, transform;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Prevent flash of unstyled content */
+[class*="animate-hero"],
+[class*="animate-logo"],
+[class*="animate-nav"],
+[class*="animate-header"] {
+  animation-fill-mode: forwards;
+}
+
+/* Header Animations - Logo and Navigation */
+.animate-logo-entrance {
+  /* Logo slides in from left with fade */
+  animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-nav-item-1,
+.animate-nav-item-2,
+.animate-nav-item-3 {
+  /* Navigation items fade in from top sequentially */
+  animation-timing-function: ease-out;
+}
+
+.animate-header-login {
+  /* Login button slides in from right with subtle scale */
+  animation-timing-function: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Features Card Hover Animations */
+.group {
+  /* Smooth transitions for all hover effects */
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Icon rotation and scale on hover */
+.group:hover .mb-6 {
+  animation: iconPulse 0.6s ease-out;
+}
+
+@keyframes iconPulse {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    transform: scale(1.15) rotate(8deg);
+  }
+  100% {
+    transform: scale(1.1) rotate(6deg);
+  }
+}
+
+/* Card lift effect with smooth shadow transition */
+.group:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 18px 40px -12px rgba(90, 155, 207, 0.25);
+}
+
+/* Gradient background pulse */
+@keyframes gradientPulse {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Icon glow effect */
+.group:hover .rounded-full {
+  box-shadow: 0 0 20px rgba(90, 155, 207, 0.4),
+              0 0 40px rgba(90, 155, 207, 0.2);
+}
+
+/* Title color transition with smooth timing */
+.group h3 {
+  transition: color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Description text enhancement on hover */
+.group:hover p {
+  transform: translateY(-2px);
+  transition: all 0.3s ease-out;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.7);
+}
+
+/* Select placeholder style */
+select:invalid,
+select[value=""] {
+  color: rgb(156, 163, 175);
+}
+
+select option {
+  color: rgb(17, 24, 39);
+}
+
+select option[value=""] {
+  color: rgb(156, 163, 175);
+}
+
+/* Session View Animations */
+@keyframes slideUpModal {
+  0% {
+    opacity: 0;
+    transform: translateY(40px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes bounceGentle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-slide-up-modal {
+  animation: slideUpModal 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-bounce-gentle {
+  animation: bounceGentle 2s ease-in-out infinite;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.animate-fade-in-up-delay {
+  animation: fadeInUp 0.6s ease-out 0.15s forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* Patient Selector Animations */
+@keyframes slideDown {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px) scaleY(0.95);
+    transform-origin: top;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+@keyframes fadeInItem {
+  0% {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slideDown 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-fade-in-item {
+  animation: fadeInItem 0.4s ease-out forwards;
+  opacity: 0;
+}
+
+/* Animated Gradient Button */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.btn-gradient-animated {
+  background: linear-gradient(
+    135deg,
+    #5A9BCF 0%,
+    #4A8BBF 25%,
+    #3A7BAF 50%,
+    #4A8BBF 75%,
+    #5A9BCF 100%
+  );
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-gradient-animated::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transition: left 0.5s ease;
+}
+
+.btn-gradient-animated:hover::before {
+  left: 100%;
+}
+
+.btn-gradient-animated:hover {
+  animation: gradientShift 1.5s ease infinite;
+  box-shadow: 0 8px 25px rgba(90, 155, 207, 0.4);
+}
+
+/* Accessibility: Reduce motion for sensitive users */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    scroll-behavior: auto !important;
+  }
+  .btn-gradient-animated,
+  .animate-bounce-gentle,
+  .animate-slide-up-modal,
+  .animate-fade-in,
+  .animate-fade-in-up,
+  .animate-fade-in-up-delay,
+  .animate-slide-down,
+  .animate-fade-in-item {
+    animation: none !important;
+  }
+}
