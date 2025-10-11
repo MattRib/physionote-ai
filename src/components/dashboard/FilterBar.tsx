@@ -70,16 +70,16 @@ const FilterBar: React.FC<FilterBarProps> = ({
         
         {/* Search Input */}
         <div className="flex-1 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#666666]" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#94A3B8]" />
           <input
             type="text"
             placeholder="Buscar por paciente..."
             value={searchQuery}
             onChange={handleSearchChange}
-            className="w-full pl-12 pr-4 py-3 rounded-lg border-2 border-gray-200
-                     focus:border-[#5A9BCF] focus:outline-none
-                     transition-colors duration-200
-                     text-[#333333] placeholder:text-[#999999]"
+            className="w-full pl-12 pr-4 py-3 rounded-lg border-2 border-[#E2E8F0]
+                     focus:border-[#4F46E5] focus:outline-none focus:ring-4 focus:ring-[#6366F1]/10
+                     transition-colors duration-200 bg-white
+                     text-[#111827] placeholder:text-[#94A3B8]"
           />
         </div>
 
@@ -89,8 +89,8 @@ const FilterBar: React.FC<FilterBarProps> = ({
           className={`flex items-center space-x-2 px-6 py-3 rounded-lg border-2 
                    transition-all duration-200 font-medium
                    ${isFiltersOpen 
-                     ? 'border-[#5A9BCF] bg-[#5A9BCF] text-white' 
-                     : 'border-gray-200 text-[#666666] hover:border-[#5A9BCF] hover:text-[#5A9BCF]'
+                     ? 'border-[#4F46E5] bg-[#4F46E5] text-white shadow-sm' 
+                     : 'border-[#E2E8F0] text-[#64748B] hover:border-[#6366F1] hover:text-[#4F46E5] hover:bg-[#EEF2FF]'
                    }`}
         >
           <SlidersHorizontal className="w-5 h-5" />
@@ -99,13 +99,13 @@ const FilterBar: React.FC<FilterBarProps> = ({
         </button>
 
         {/* View Mode Toggle */}
-        <div className="flex items-center bg-gray-100 rounded-lg p-1">
+        <div className="flex items-center bg-[#F1F5F9] rounded-lg p-1">
           <button
             onClick={() => onViewModeChange('grid')}
             className={`px-4 py-2 rounded-md transition-all duration-200 ${
               currentViewMode === 'grid'
-                ? 'bg-white text-[#5A9BCF] shadow-sm'
-                : 'text-[#666666] hover:text-[#5A9BCF]'
+                ? 'bg-white text-[#4F46E5] shadow-sm'
+                : 'text-[#64748B] hover:text-[#4F46E5]'
             }`}
             title="Modo Grid"
           >
@@ -115,8 +115,8 @@ const FilterBar: React.FC<FilterBarProps> = ({
             onClick={() => onViewModeChange('list')}
             className={`px-4 py-2 rounded-md transition-all duration-200 ${
               currentViewMode === 'list'
-                ? 'bg-white text-[#5A9BCF] shadow-sm'
-                : 'text-[#666666] hover:text-[#5A9BCF]'
+                ? 'bg-white text-[#4F46E5] shadow-sm'
+                : 'text-[#64748B] hover:text-[#4F46E5]'
             }`}
             title="Modo Lista"
           >
@@ -126,8 +126,8 @@ const FilterBar: React.FC<FilterBarProps> = ({
             onClick={() => onViewModeChange('table')}
             className={`px-4 py-2 rounded-md transition-all duration-200 ${
               currentViewMode === 'table'
-                ? 'bg-white text-[#5A9BCF] shadow-sm'
-                : 'text-[#666666] hover:text-[#5A9BCF]'
+                ? 'bg-white text-[#4F46E5] shadow-sm'
+                : 'text-[#64748B] hover:text-[#4F46E5]'
             }`}
             title="Modo Tabela"
           >
@@ -138,11 +138,11 @@ const FilterBar: React.FC<FilterBarProps> = ({
 
       {/* Expanded Filters Panel */}
       {isFiltersOpen && (
-        <div className="bg-white rounded-lg border-2 border-gray-200 p-6 space-y-6 animate-fade-in">
+  <div className="bg-white rounded-lg border-2 border-[#E2E8F0] p-6 space-y-6 shadow-sm animate-fade-in">
           
           {/* Status Filter */}
           <div>
-            <label className="text-sm font-semibold text-[#333333] mb-3 block">
+            <label className="text-sm font-semibold text-[#111827] mb-3 block">
               Status das Sessões
             </label>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -153,8 +153,8 @@ const FilterBar: React.FC<FilterBarProps> = ({
                   className={`px-4 py-3 rounded-lg border-2 transition-all duration-200
                            text-left font-medium
                            ${selectedStatus === option.value
-                             ? 'border-[#5A9BCF] bg-[#5A9BCF]/10 text-[#5A9BCF]'
-                             : 'border-gray-200 text-[#666666] hover:border-[#5A9BCF]/50'
+                             ? 'border-[#4F46E5] bg-[#EEF2FF] text-[#4F46E5] shadow-sm'
+                             : 'border-[#E2E8F0] text-[#64748B] hover:border-[#6366F1]/60 hover:text-[#4F46E5]'
                            }`}
                 >
                   <div className="flex items-center justify-between">
@@ -170,7 +170,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
 
           {/* Date Range Filter */}
           <div>
-            <label className="text-sm font-semibold text-[#333333] mb-3 flex items-center space-x-2">
+            <label className="text-sm font-semibold text-[#111827] mb-3 flex items-center space-x-2">
               <Calendar className="w-4 h-4" />
               <span>Período</span>
             </label>
@@ -182,8 +182,8 @@ const FilterBar: React.FC<FilterBarProps> = ({
                   className={`px-4 py-3 rounded-lg border-2 transition-all duration-200
                            text-center font-medium text-sm
                            ${selectedDateRange === option.value
-                             ? 'border-[#5A9BCF] bg-[#5A9BCF]/10 text-[#5A9BCF]'
-                             : 'border-gray-200 text-[#666666] hover:border-[#5A9BCF]/50'
+                             ? 'border-[#4F46E5] bg-[#EEF2FF] text-[#4F46E5] shadow-sm'
+                             : 'border-[#E2E8F0] text-[#64748B] hover:border-[#6366F1]/60 hover:text-[#4F46E5]'
                            }`}
                 >
                   {option.label}
@@ -194,7 +194,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
 
           {/* Items Per Page */}
           <div>
-            <label className="text-sm font-semibold text-[#333333] mb-3 block">
+            <label className="text-sm font-semibold text-[#111827] mb-3 block">
               Sessões por página
             </label>
             <div className="flex items-center space-x-3">
@@ -205,8 +205,8 @@ const FilterBar: React.FC<FilterBarProps> = ({
                   className={`px-4 py-2 rounded-lg border-2 transition-all duration-200
                            font-medium
                            ${currentItemsPerPage === count
-                             ? 'border-[#5A9BCF] bg-[#5A9BCF] text-white'
-                             : 'border-gray-200 text-[#666666] hover:border-[#5A9BCF]'
+                             ? 'border-[#4F46E5] bg-[#4F46E5] text-white shadow-sm'
+                             : 'border-[#E2E8F0] text-[#64748B] hover:border-[#6366F1] hover:text-[#4F46E5]'
                            }`}
                 >
                   {count}
@@ -216,7 +216,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
           </div>
 
           {/* Clear Filters */}
-          <div className="pt-4 border-t border-gray-200 flex justify-end">
+          <div className="pt-4 border-t border-[#E2E8F0] flex justify-end">
             <button
               onClick={() => {
                 setSelectedStatus('all');
@@ -226,7 +226,7 @@ const FilterBar: React.FC<FilterBarProps> = ({
                 onDateFilter('all');
                 onSearch('');
               }}
-              className="px-6 py-2 text-[#666666] hover:text-[#5A9BCF] 
+              className="px-6 py-2 text-[#64748B] hover:text-[#4F46E5]
                        font-medium transition-colors duration-200"
             >
               Limpar Filtros
@@ -237,20 +237,20 @@ const FilterBar: React.FC<FilterBarProps> = ({
 
       {/* Active Filters Summary */}
       {(selectedStatus !== 'all' || selectedDateRange !== 'all' || searchQuery) && (
-        <div className="flex items-center space-x-2 text-sm text-[#666666]">
+        <div className="flex items-center space-x-2 text-sm text-[#64748B]">
           <span className="font-medium">Filtros ativos:</span>
           {selectedStatus !== 'all' && (
-            <span className="px-3 py-1 bg-[#5A9BCF]/10 text-[#5A9BCF] rounded-full">
+            <span className="px-3 py-1 bg-[#EEF2FF] text-[#4F46E5] rounded-full">
               {statusOptions.find(o => o.value === selectedStatus)?.label}
             </span>
           )}
           {selectedDateRange !== 'all' && (
-            <span className="px-3 py-1 bg-[#5A9BCF]/10 text-[#5A9BCF] rounded-full">
+            <span className="px-3 py-1 bg-[#EEF2FF] text-[#4F46E5] rounded-full">
               {dateRangeOptions.find(o => o.value === selectedDateRange)?.label}
             </span>
           )}
           {searchQuery && (
-            <span className="px-3 py-1 bg-[#5A9BCF]/10 text-[#5A9BCF] rounded-full">
+            <span className="px-3 py-1 bg-[#EEF2FF] text-[#4F46E5] rounded-full">
               &quot;{searchQuery}&quot;
             </span>
           )}

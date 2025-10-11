@@ -123,7 +123,7 @@ const DashboardLayout = () => {
   }, [searchQuery, statusFilter, dateFilter, itemsPerPage]);
 
   const handleNewSession = () => {
-    router.push('/dashboard/session');
+    router.push('/dashboard/new-session');
   };
 
   const handleCloseModal = () => {
@@ -204,16 +204,16 @@ const DashboardLayout = () => {
             className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
           >
             {sidebarOpen ? (
-              <X className="w-6 h-6 text-[#333333]" />
+              <X className="w-6 h-6 text-[#111827]" />
             ) : (
-              <Menu className="w-6 h-6 text-[#333333]" />
+              <Menu className="w-6 h-6 text-[#111827]" />
             )}
           </button>
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-[#5A9BCF] rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-[#4F46E5] rounded-lg flex items-center justify-center">
               <Activity className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-lg font-bold text-[#333333]">PhysioNote.AI</h1>
+            <h1 className="text-lg font-bold text-[#111827]">PhysioNote.AI</h1>
           </div>
           <div className="w-10" /> {/* Spacer for centering */}
         </div>
@@ -227,13 +227,13 @@ const DashboardLayout = () => {
             {/* Title and CTA */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="space-y-1">
-                <h1 className="text-3xl font-bold text-[#333333]">
+                <h1 className="text-3xl font-bold text-[#111827]">
                   Minhas Sessões
                 </h1>
-                <p className="text-[#666666]">
+                <p className="text-[#6B7280]">
                   {filteredSessions.length} {filteredSessions.length === 1 ? 'sessão encontrada' : 'sessões encontradas'}
                   {filteredSessions.length !== allSessions.length && (
-                    <span className="text-[#5A9BCF]"> (filtrado de {allSessions.length})</span>
+                    <span className="text-[#4F46E5]"> (filtrado de {allSessions.length})</span>
                   )}
                 </p>
               </div>
@@ -258,20 +258,20 @@ const DashboardLayout = () => {
             {/* Stats Summary */}
             <div className="flex items-center flex-wrap gap-4 text-sm">
               <div className="px-4 py-2 bg-white rounded-lg shadow-sm">
-                <span className="text-[#666666]">Concluídas: </span>
+                <span className="text-[#6B7280]">Concluídas: </span>
                 <span className="font-bold text-green-600">
                   {allSessions.filter(s => s.status === 'completed').length}
                 </span>
               </div>
               <div className="px-4 py-2 bg-white rounded-lg shadow-sm">
-                <span className="text-[#666666]">Processando: </span>
+                <span className="text-[#6B7280]">Processando: </span>
                 <span className="font-bold text-amber-600">
                   {allSessions.filter(s => s.status === 'processing').length}
                 </span>
               </div>
               {allSessions.filter(s => s.status === 'error').length > 0 && (
                 <div className="px-4 py-2 bg-white rounded-lg shadow-sm">
-                  <span className="text-[#666666]">Com Erro: </span>
+                  <span className="text-[#6B7280]">Com Erro: </span>
                   <span className="font-bold text-red-600">
                     {allSessions.filter(s => s.status === 'error').length}
                   </span>

@@ -23,26 +23,34 @@ model Patient {
 }
 
 model Session {
-  id          String    @id @default(cuid())
-  patientId   String
-  date        DateTime  @default(now())
-  durationMin Int?
-  audioUrl    String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  patient     Patient   @relation(fields: [patientId], references: [id])
-  note        Note?
+  id            String    @id @default(cuid())
+  patientId     String
+  date          DateTime  @default(now())
+  durationMin   Int?
+  audioUrl      String?
+  audioSize     Int?      // tamanho em bytes
+  transcription String?   // texto completo da transcrição
+  status        String    @default("recording") // recording | transcribing | generating | completed | error
+  errorMessage  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  patient       Patient   @relation(fields: [patientId], references: [id])
+  note          Note?
 
   @@index([patientId, date])
+  @@index([status])
 }
 
 model Note {
-  id           String   @id @default(cuid())
-  sessionId    String   @unique
-  contentJson  String
-  aiGenerated  Boolean  @default(false)
-  aiModel      String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  session      Session  @relation(fields: [sessionId], references: [id])
+  id           String    @id @default(cuid())
+  sessionId    String    @unique
+  contentJson  String    // JSON estruturado da nota
+  aiGenerated  Boolean   @default(false)
+  aiModel      String?   // ex: "gpt-4-turbo-preview"
+  aiPromptUsed String?   // prompt usado (para auditoria)
+  reviewedBy   String?   // userId que revisou (futuro)
+  reviewedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  session      Session   @relation(fields: [sessionId], references: [id])
 }

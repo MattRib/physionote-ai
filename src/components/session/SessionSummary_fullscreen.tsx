@@ -1,177 +1,161 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from "react";
 import {
-  User,
-  Calendar,
-  Clock,
-  FileText,
-  Activity,
-  Stethoscope,
-  Clipboard,
-  Target,
-  AlertCircle,
-  TrendingUp,
-  Download,
-  Copy,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Save,
-  X
-} from 'lucide-react';
-import NoteAIDisclaimer from './NoteAIDisclaimer';
+	Activity,
+	AlertCircle,
+	Calendar,
+	Check,
+	ChevronDown,
+	ChevronUp,
+	Clipboard,
+	Copy,
+	Download,
+	FileText,
+	Save,
+	Stethoscope,
+	TrendingUp,
+	User,
+	X
+} from "lucide-react";
+import NoteAIDisclaimer from "./NoteAIDisclaimer";
 
 interface SessionSummaryProps {
-  patient: { id: string; name: string };
-  duration: number;
-  transcription: string[];
-  onSave: () => void;
-  onCancel: () => void;
-  showAIDisclaimer?: boolean;
+	patient: { id: string; name: string };
+	duration: number;
+	transcription: string[];
+	onSave: () => void;
+	onCancel: () => void;
+	showAIDisclaimer?: boolean;
 }
 
-// Mock data de uma consulta típica de fisioterapia
-const getMockSessionNote = (patientName: string) => {
-  return {
-    resumoExecutivo: {
-      queixaPrincipal: "Dor lombar crônica há aproximadamente 3 meses, com intensificação nos últimos 15 dias",
-      nivelDor: 7,
-      evolucao: "Paciente apresentou melhora de 30% em relação à última sessão"
-    },
-    
-    anamnese: {
-      historicoAtual: "Paciente relata início insidioso de dor na região lombar há 3 meses, sem trauma aparente. Dor tipo queimação, intensidade 7/10, com irradiação para membro inferior direito até joelho. Piora com permanência prolongada em pé e melhora parcial com repouso. Paciente trabalha como vendedor, permanecendo 8h em pé diariamente.",
-      antecedentesPessoais: "Sedentário, sobrepeso (IMC 28), sem histórico de cirurgias prévias na coluna",
-      medicamentos: "Dipirona 1g SOS para dor (uso irregular)",
-      objetivos: "Retornar às atividades de trabalho sem limitações e poder praticar caminhada recreativa"
-    },
+type SectionKey =
+	| "resumo"
+	| "anamnese"
+	| "diagnostico"
+	| "intervencoes"
+	| "resposta"
+	| "orientacoes"
+	| "plano"
+	| "transcricao";
 
-    diagnosticoFisioterapeutico: {
-      principal: "Lombalgia mecânica crônica com radiculopatia L5-S1 à direita",
-      secundario: [
-        "Desequilíbrio muscular da região lombopélvica",
-        "Fraqueza da musculatura estabilizadora do core",
-        "Encurtamento de musculatura posterior de membros inferiores",
-        "Hiperlordose lombar postural"
-      ],
-      cif: "b28013 (Dor na região lombar - grave) + b7101 (Mobilidade das articulações da coluna lombar - limitação moderada)"
-    },
+const getMockSessionNote = (patientName: string) => ({
+	resumoExecutivo: {
+		queixaPrincipal:
+			"Dor lombar crônica há aproximadamente 3 meses, com intensificação nos últimos 15 dias",
+		nivelDor: 7,
+		evolucao: "Paciente apresentou melhora de 30% em relação à última sessão"
+	},
+	anamnese: {
+		historicoAtual:
+			"Paciente relata início insidioso de dor na região lombar há 3 meses, sem trauma aparente. Dor tipo queimação, intensidade 7/10, com irradiação para membro inferior direito até joelho. Piora com permanência prolongada em pé e melhora parcial com repouso. Paciente trabalha como vendedor, permanecendo 8h em pé diariamente.",
+		antecedentesPessoais:
+			"Sedentário, sobrepeso (IMC 28), sem histórico de cirurgias prévias na coluna",
+		medicamentos: "Dipirona 1g SOS para dor (uso irregular)",
+		objetivos:
+			"Retornar às atividades de trabalho sem limitações e poder praticar caminhada recreativa"
+	},
+	diagnosticoFisioterapeutico: {
+		principal: "Lombalgia mecânica crônica com radiculopatia L5-S1 à direita",
+		secundario: [
+			"Desequilíbrio muscular da região lombopélvica",
+			"Fraqueza da musculatura estabilizadora do core",
+			"Encurtamento de musculatura posterior de membros inferiores",
+			"Hiperlordose lombar postural"
+		],
+		cif:
+			"b28013 (Dor na região lombar - grave) + b7101 (Mobilidade das articulações da coluna lombar - limitação moderada)"
+	},
+	intervencoes: {
+		tecnicasManuais: [
+			"Mobilização articular de L4-L5 grau III (Maitland) - 3 séries de 30 segundos",
+			"Liberação miofascial de quadrado lombar bilateral - 5 minutos cada lado",
+			"Massagem de deslizamento profundo em paravertebrais - 8 minutos",
+			"Técnica de energia muscular para piriforme direito - 3 repetições"
+		],
+		exerciciosTerapeuticos: [
+			"Exercício de estabilização segmentar - ponte com sustentação isométrica 10s x 10 repetições",
+			"Ativação de transverso abdominal em 4 apoios - 3 séries de 10 repetições",
+			"Alongamento de isquiotibiais em decúbito dorsal - 3 séries de 30s cada perna",
+			"Mobilização neural do nervo ciático - 2 séries de 10 repetições"
+		],
+		recursosEletrotermofototerapeticos: [
+			"TENS modo burst na região lombar - 20 minutos (analgesia)",
+			"Compressa quente em região lombar - 10 minutos (pré-tratamento)"
+		]
+	},
+	respostaTratamento: {
+		imediata:
+			"Paciente refere diminuição da dor de 7/10 para 4/10 após sessão. Melhora de 30% na amplitude de flexão do tronco. Relata sensação de 'leveza' e melhor mobilidade.",
+		efeitos: "Sem efeitos adversos relatados. Paciente tolerou bem todas as intervenções.",
+		feedback: "Paciente muito satisfeito com resultado imediato, motivado para continuar tratamento"
+	},
+	orientacoes: {
+		domiciliares: [
+			"Aplicar bolsa de água morna na região lombar por 15-20 minutos, 2x ao dia",
+			"Realizar alongamento de isquiotibiais 3x ao dia (manhã, tarde e noite)",
+			"Praticar exercício de ativação do transverso abdominal em casa - 2 séries de 10 repetições pela manhã",
+			"Evitar permanecer mais de 2 horas na mesma posição"
+		],
+		ergonomicas: [
+			"Utilizar apoio lombar na cadeira do trabalho",
+			"Fazer pausas de 5 minutos a cada 1 hora para alongamentos",
+			"Ao pegar objetos do chão, agachar flexionando joelhos (não curvar coluna)",
+			"Dormir em decúbito lateral com travesseiro entre os joelhos"
+		],
+		precaucoes: [
+			"Evitar movimentos de rotação combinada com flexão do tronco",
+			"Não carregar peso acima de 5kg por enquanto",
+			"Caso dor aumente significativamente ou apareça formigamento intenso, entrar em contato"
+		]
+	},
+	planoTratamento: {
+		frequencia: "3x por semana nas próximas 2 semanas, depois reavaliar para 2x por semana",
+		duracaoPrevista: "8-12 semanas para recuperação funcional completa",
+		objetivosCurtoPrazo: [
+			"Reduzir dor para 3/10 ou menos em 2 semanas",
+			"Aumentar ADM de flexão do tronco para 75° em 2 semanas",
+			"Melhorar força de abdominais para 4/5 em 3 semanas"
+		],
+		objetivosLongoPrazo: [
+			"Retorno ao trabalho sem limitações em 6-8 semanas",
+			"Iniciar programa de caminhada recreativa em 8 semanas",
+			"Recuperação completa da ADM lombar em 10-12 semanas",
+			"Força muscular 5/5 em toda musculatura do core em 12 semanas"
+		],
+		criteriosAlta: [
+			"Ausência de dor ou dor mínima (≤2/10)",
+			"ADM completa e indolor",
+			"Força muscular 5/5",
+			"Retorno às atividades funcionais sem limitações",
+			"Paciente capaz de realizar programa de exercícios domiciliares de manutenção"
+		]
+	},
+	observacoesAdicionais:
+		"Paciente demonstra boa compreensão das orientações e alta motivação para tratamento. Reforçada importância da adesão aos exercícios domiciliares e modificações ergonômicas para sucesso do tratamento. Enfatizada necessidade de perda de peso gradual para diminuir sobrecarga lombar (encaminhamento para nutricionista sugerido).",
+	proximaSessao: {
+		data: "2 dias",
+		foco: "Progressão de exercícios de estabilização, continuidade de técnicas manuais e reavaliação da dor"
+	}
+});
 
-    intervencoes: {
-      tecnicasManuais: [
-        "Mobilização articular de L4-L5 grau III (Maitland) - 3 séries de 30 segundos",
-        "Liberação miofascial de quadrado lombar bilateral - 5 minutos cada lado",
-        "Massagem de deslizamento profundo em paravertebrais - 8 minutos",
-        "Técnica de energia muscular para piriforme direito - 3 repetições"
-      ],
-      exerciciosTerapeuticos: [
-        "Exercício de estabilização segmentar - ponte com sustentação isométrica 10s x 10 repetições",
-        "Ativação de transverso abdominal em 4 apoios - 3 séries de 10 repetições",
-        "Alongamento de isquiotibiais em decúbito dorsal - 3 séries de 30s cada perna",
-        "Mobilização neural do nervo ciático - 2 séries de 10 repetições"
-      ],
-      recursosEletrotermofototerapeticos: [
-        "TENS modo burst na região lombar - 20 minutos (analgesia)",
-        "Compressa quente em região lombar - 10 minutos (pré-tratamento)"
-      ]
-    },
-
-    respostaTratamento: {
-      imediata: "Paciente refere diminuição da dor de 7/10 para 4/10 após sessão. Melhora de 30% na amplitude de flexão do tronco. Relata sensação de 'leveza' e melhor mobilidade.",
-      efeitos: "Sem efeitos adversos relatados. Paciente tolerou bem todas as intervenções.",
-      feedback: "Paciente muito satisfeito com resultado imediato, motivado para continuar tratamento"
-    },
-
-    orientacoes: {
-      domiciliares: [
-        "Aplicar bolsa de água morna na região lombar por 15-20 minutos, 2x ao dia",
-        "Realizar alongamento de isquiotibiais 3x ao dia (manhã, tarde e noite)",
-        "Praticar exercício de ativação do transverso abdominal em casa - 2 séries de 10 repetições pela manhã",
-        "Evitar permanecer mais de 2 horas na mesma posição"
-      ],
-      ergonomicas: [
-        "Utilizar apoio lombar na cadeira do trabalho",
-        "Fazer pausas de 5 minutos a cada 1 hora para alongamentos",
-        "Ao pegar objetos do chão, agachar flexionando joelhos (não curvar coluna)",
-        "Dormir em decúbito lateral com travesseiro entre os joelhos"
-      ],
-      precaucoes: [
-        "Evitar movimentos de rotação combinada com flexão do tronco",
-        "Não carregar peso acima de 5kg por enquanto",
-        "Caso dor aumente significativamente ou apareça formigamento intenso, entrar em contato"
-      ]
-    },
-
-    planoTratamento: {
-      frequencia: "3x por semana nas próximas 2 semanas, depois reavaliar para 2x por semana",
-      duracaoPrevista: "8-12 semanas para recuperação funcional completa",
-      objetivosCurtoPrazo: [
-        "Reduzir dor para 3/10 ou menos em 2 semanas",
-        "Aumentar ADM de flexão do tronco para 75° em 2 semanas",
-        "Melhorar força de abdominais para 4/5 em 3 semanas"
-      ],
-      objetivosLongoPrazo: [
-        "Retorno ao trabalho sem limitações em 6-8 semanas",
-        "Iniciar programa de caminhada recreativa em 8 semanas",
-        "Recuperação completa da ADM lombar em 10-12 semanas",
-        "Força muscular 5/5 em toda musculatura do core em 12 semanas"
-      ],
-      criteriosAlta: [
-        "Ausência de dor ou dor mínima (≤2/10)",
-        "ADM completa e indolor",
-        "Força muscular 5/5",
-        "Retorno às atividades funcionais sem limitações",
-        "Paciente capaz de realizar programa de exercícios domiciliares de manutenção"
-      ]
-    },
-
-    observacoesAdicionais: "Paciente demonstra boa compreensão das orientações e alta motivação para tratamento. Reforçada importância da adesão aos exercícios domiciliares e modificações ergonômicas para sucesso do tratamento. Enfatizada necessidade de perda de peso gradual para diminuir sobrecarga lombar (encaminhamento para nutricionista sugerido).",
-
-    proximaSessao: {
-      data: "2 dias",
-      foco: "Progressão de exercícios de estabilização, continuidade de técnicas manuais e reavaliação da dor"
-    }
-  };
+const formatDateTime = (datetime: string) => {
+	const dateObj = new Date(datetime);
+	return {
+		date: dateObj.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }),
+		time: dateObj.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+	};
 };
 
-const SessionSummary: React.FC<SessionSummaryProps> = ({
-  patient,
-  duration,
-  transcription,
-  onSave,
-  onCancel,
-  showAIDisclaimer = true
-}) => {
-  const [copied, setCopied] = useState(false);
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['resumo', 'anamnese', 'diagnostico', 'intervencoes', 'resposta', 'orientacoes', 'plano']));
-  const [editMode] = useState(true); // por padrão, já vem em modo de edição antes de salvar
-
-  // Estado da nota editável (inicialmente preenchido pela IA)
-  const [note, setNote] = useState(getMockSessionNote(patient.name));
-
-  const sessionData = {
-    id: `session-${Date.now()}`,
-    patient_name: patient.name,
-    session_datetime: new Date().toISOString(),
-    duration_minutes: Math.floor(duration / 60)
-  };
-
-  const formatDateTime = (datetime: string) => {
-    const date = new Date(datetime);
-    return {
-      date: date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }),
-      time: date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-    };
-  };
-
-  const { date, time } = formatDateTime(sessionData.session_datetime);
-
-  const handleCopyNote = () => {
-    const noteText = `
+const buildNoteText = (sessionData: {
+	patient_name: string;
+	duration_minutes: number;
+	date: string;
+	time: string;
+}) => (note: ReturnType<typeof getMockSessionNote>) => `
 NOTA DE EVOLUÇÃO FISIOTERAPÊUTICA
 Paciente: ${sessionData.patient_name}
-Data: ${date} às ${time}
+Data: ${sessionData.date} às ${sessionData.time}
 Duração: ${sessionData.duration_minutes} minutos
 
 QUEIXA PRINCIPAL: ${note.resumoExecutivo.queixaPrincipal}
@@ -186,617 +170,654 @@ ANAMNESE:
 
 DIAGNÓSTICO PRINCIPAL: ${note.diagnosticoFisioterapeutico.principal}
 SECUNDÁRIOS:
-${note.diagnosticoFisioterapeutico.secundario.map((d: string)=>`- ${d}`).join('\n')}
+${note.diagnosticoFisioterapeutico.secundario.map((item) => `- ${item}`).join("\n")}
 CIF: ${note.diagnosticoFisioterapeutico.cif}
 
 INTERVENÇÕES:
-- Técnicas Manuais:\n${note.intervencoes.tecnicasManuais.map((i: string)=>`  • ${i}`).join('\n')}
-- Exercícios Terapêuticos:\n${note.intervencoes.exerciciosTerapeuticos.map((i: string)=>`  • ${i}`).join('\n')}
-- Recursos Eletrotermofototerapêuticos:\n${note.intervencoes.recursosEletrotermofototerapeticos.map((i: string)=>`  • ${i}`).join('\n')}
+- Técnicas Manuais:\n${note.intervencoes.tecnicasManuais.map((item) => `  • ${item}`).join("\n")}
+- Exercícios Terapêuticos:\n${note.intervencoes.exerciciosTerapeuticos.map((item) => `  • ${item}`).join("\n")}
+- Recursos Eletrotermofototerapêuticos:\n${note.intervencoes.recursosEletrotermofototerapeticos.map((item) => `  • ${item}`).join("\n")}
 
 RESPOSTA IMEDIATA: ${note.respostaTratamento.imediata}
 EFEITOS ADVERSOS: ${note.respostaTratamento.efeitos}
 FEEDBACK: ${note.respostaTratamento.feedback}
 
-ORIENTAÇÕES DOMICILIARES:\n${note.orientacoes.domiciliares.map((i: string)=>`• ${i}`).join('\n')}
-ERGONÔMICAS:\n${note.orientacoes.ergonomicas.map((i: string)=>`• ${i}`).join('\n')}
-PRECAUÇÕES:\n${note.orientacoes.precaucoes.map((i: string)=>`• ${i}`).join('\n')}
+ORIENTAÇÕES DOMICILIARES:\n${note.orientacoes.domiciliares.map((item) => `• ${item}`).join("\n")}
+ERGONÔMICAS:\n${note.orientacoes.ergonomicas.map((item) => `• ${item}`).join("\n")}
+PRECAUÇÕES:\n${note.orientacoes.precaucoes.map((item) => `• ${item}`).join("\n")}
 
 PLANO:
 - Frequência: ${note.planoTratamento.frequencia}
 - Duração Prevista: ${note.planoTratamento.duracaoPrevista}
-- Objetivos (Curto Prazo):\n${note.planoTratamento.objetivosCurtoPrazo.map((i: string)=>`  ${i}`).join('\n')}
-- Objetivos (Longo Prazo):\n${note.planoTratamento.objetivosLongoPrazo.map((i: string)=>`  ${i}`).join('\n')}
-- Critérios de Alta:\n${note.planoTratamento.criteriosAlta.map((i: string)=>`  ${i}`).join('\n')}
+- Objetivos (Curto Prazo):\n${note.planoTratamento.objetivosCurtoPrazo.map((item) => `  ${item}`).join("\n")}
+- Objetivos (Longo Prazo):\n${note.planoTratamento.objetivosLongoPrazo.map((item) => `  ${item}`).join("\n")}
+- Critérios de Alta:\n${note.planoTratamento.criteriosAlta.map((item) => `  ${item}`).join("\n")}
 
 OBSERVAÇÕES ADICIONAIS: ${note.observacoesAdicionais}
 PRÓXIMA SESSÃO: Retorno em ${note.proximaSessao.data} | Foco: ${note.proximaSessao.foco}
-    `;
-    
-    navigator.clipboard.writeText(noteText.trim());
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+`;
 
-  const handleSaveClick = () => {
-    // Até termos backend, registramos a nota editada no console para avaliação.
-    console.log('Nota editada (revisada pelo usuário):', note);
-    onSave();
-  };
+const SessionSummary: React.FC<SessionSummaryProps> = ({
+	patient,
+	duration,
+	transcription,
+	onSave,
+	onCancel,
+	showAIDisclaimer = true
+}) => {
+	const [copied, setCopied] = useState(false);
+		const [expandedSections, setExpandedSections] = useState<Set<SectionKey>>(() =>
+			new Set<SectionKey>(["resumo", "anamnese", "diagnostico", "intervencoes", "resposta", "orientacoes", "plano"])
+		);
+	const [note, setNote] = useState(getMockSessionNote(patient.name));
 
-  const handleClose = () => {
-    if (confirm('Tem certeza que deseja descartar esta sessão? Todos os dados serão perdidos.')) {
-      onCancel();
-    }
-  };
+	const sessionData = useMemo(
+		() => ({
+			id: `session-${Date.now()}`,
+			patient_name: patient.name,
+			session_datetime: new Date().toISOString(),
+			duration_minutes: Math.max(1, Math.floor(duration / 60))
+		}),
+		[patient.name, duration]
+	);
 
-  const toggleSection = (section: string) => {
-    const newExpanded = new Set(expandedSections);
-    if (newExpanded.has(section)) {
-      newExpanded.delete(section);
-    } else {
-      newExpanded.add(section);
-    }
-    setExpandedSections(newExpanded);
-  };
+	const { date, time } = formatDateTime(sessionData.session_datetime);
 
-  const SectionHeader = ({ id, icon: Icon, title, color }: { id: string, icon: any, title: string, color: string }) => {
-    const isExpanded = expandedSections.has(id);
-    return (
-      <button
-        onClick={() => toggleSection(id)}
-        className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
-      >
-        <div className="flex items-center space-x-3">
-          <div className={`w-10 h-10 ${color} rounded-lg flex items-center justify-center`}>
-            <Icon className="w-5 h-5 text-white" />
-          </div>
-          <h3 className="text-lg font-semibold text-[#333333]">{title}</h3>
-        </div>
-        {isExpanded ? (
-          <ChevronUp className="w-5 h-5 text-[#666666]" />
-        ) : (
-          <ChevronDown className="w-5 h-5 text-[#666666]" />
-        )}
-      </button>
-    );
-  };
+	const noteText = useMemo(
+		() =>
+			buildNoteText({
+				patient_name: sessionData.patient_name,
+				duration_minutes: sessionData.duration_minutes,
+				date,
+				time
+			})(note),
+		[date, time, note, sessionData.duration_minutes, sessionData.patient_name]
+	);
 
-  return (
-    <div className="min-h-screen bg-[#F7F7F7]">
-      {/* Header Fixo */}
-      <div className="bg-gradient-to-r from-[#5A9BCF] to-[#4A8BBF] shadow-lg">
-        <div className="max-w-7xl mx-auto p-6 text-white">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                <FileText className="w-6 h-6" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">Sessão Finalizada</h1>
-                <p className="text-blue-100 text-sm">Revise o resumo inteligente gerado</p>
-              </div>
-            </div>
-          </div>
+	const handleCopyNote = () => {
+		navigator.clipboard.writeText(noteText.trim());
+		setCopied(true);
+		setTimeout(() => setCopied(false), 2000);
+	};
 
-          {/* Session Info */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white/10 backdrop-blur-sm rounded-lg p-4">
-            <div className="flex items-center space-x-2">
-              <User className="w-5 h-5 text-blue-200" />
-              <div>
-                <div className="text-xs text-blue-200">Paciente</div>
-                <div className="font-semibold">{sessionData.patient_name}</div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Calendar className="w-5 h-5 text-blue-200" />
-              <div>
-                <div className="text-xs text-blue-200">Data</div>
-                <div className="font-semibold">{date}</div>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Clock className="w-5 h-5 text-blue-200" />
-              <div>
-                <div className="text-xs text-blue-200">Duração</div>
-                <div className="font-semibold">{sessionData.duration_minutes} minutos</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+	const handleSaveClick = () => {
+		onSave();
+	};
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto p-6 space-y-6 pb-32">
-        {/* Aviso discreto de IA (apenas quando gerado por IA) */}
-        <NoteAIDisclaimer show={showAIDisclaimer} />
-        
-        {/* Resumo Executivo */}
-        <div className="space-y-2">
-          <SectionHeader id="resumo" icon={Activity} title="Resumo Executivo" color="bg-[#5A9BCF]" />
-          {expandedSections.has('resumo') && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4 animate-fade-in">
-              <div className="bg-blue-50 border-l-4 border-[#5A9BCF] p-4 rounded-r-lg">
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <AlertCircle className="w-5 h-5 text-[#5A9BCF] flex-shrink-0" />
-                    <h4 className="font-semibold text-[#333333] text-base md:text-lg">Queixa Principal</h4>
-                  </div>
-                  <textarea
-                    className="w-full text-[#333333] bg-white border border-blue-200 rounded-md p-3 resize-y focus:outline-none focus:ring-2 focus:ring-[#5A9BCF]"
-                    value={note.resumoExecutivo.queixaPrincipal}
-                    onChange={(e) => setNote({
-                      ...note,
-                      resumoExecutivo: { ...note.resumoExecutivo, queixaPrincipal: e.target.value }
-                    })}
-                    rows={3}
-                  />
-                </div>
-              </div>
+	const handleClose = () => {
+		if (confirm("Tem certeza que deseja descartar esta sessão? Todos os dados serão perdidos.")) {
+			onCancel();
+		}
+	};
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-                  <div className="text-sm text-red-600 font-medium mb-1 md:text-base">Nível de Dor (EVA)</div>
-                  <div className="flex items-baseline space-x-2">
-                    <input
-                      type="number"
-                      min={0}
-                      max={10}
-                      className="w-20 text-3xl font-bold text-red-600 bg-transparent focus:outline-none"
-                      value={note.resumoExecutivo.nivelDor}
-                      onChange={(e) => setNote({
-                        ...note,
-                        resumoExecutivo: { ...note.resumoExecutivo, nivelDor: Number(e.target.value) }
-                      })}
-                    />
-                    <span className="text-red-600 text-2xl">/10</span>
-                  </div>
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                  <div className="text-sm text-green-600 font-medium mb-1 md:text-base">Evolução</div>
-                  <div className="flex items-center space-x-2">
-                    <TrendingUp className="w-6 h-6 text-green-600" />
-                    <input
-                      className="flex-1 text-lg font-semibold text-green-700 bg-transparent border-b border-green-300 focus:outline-none"
-                      value={note.resumoExecutivo.evolucao}
-                      onChange={(e) => setNote({
-                        ...note,
-                        resumoExecutivo: { ...note.resumoExecutivo, evolucao: e.target.value }
-                      })}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+	const toggleSection = (section: SectionKey) => {
+		const next = new Set(expandedSections);
+		if (next.has(section)) {
+			next.delete(section);
+		} else {
+			next.add(section);
+		}
+		setExpandedSections(next);
+	};
 
-        {/* Anamnese */}
-        <div className="space-y-2">
-          <SectionHeader id="anamnese" icon={Clipboard} title="Anamnese" color="bg-purple-500" />
-          {expandedSections.has('anamnese') && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-3 animate-fade-in">
-              <div>
-                <h4 className="font-semibold text-[#333333] mb-2">Histórico Atual</h4>
-                <textarea
-                  className="w-full text-[#333333] bg-white border border-gray-200 rounded-md p-3 resize-y focus:outline-none focus:ring-2 focus:ring-purple-400"
-                  value={note.anamnese.historicoAtual}
-                  onChange={(e) => setNote({
-                    ...note,
-                    anamnese: { ...note.anamnese, historicoAtual: e.target.value }
-                  })}
-                  rows={4}
-                />
-              </div>
-              <div>
-                <h4 className="font-semibold text-[#333333] mb-2">Antecedentes Pessoais</h4>
-                <textarea
-                  className="w-full text-[#333333] bg-white border border-gray-200 rounded-md p-3 resize-y focus:outline-none focus:ring-2 focus:ring-purple-400"
-                  value={note.anamnese.antecedentesPessoais}
-                  onChange={(e) => setNote({
-                    ...note,
-                    anamnese: { ...note.anamnese, antecedentesPessoais: e.target.value }
-                  })}
-                  rows={3}
-                />
-              </div>
-              <div>
-                <h4 className="font-semibold text-[#333333] mb-2">Medicamentos em Uso</h4>
-                <textarea
-                  className="w-full text-[#333333] bg-white border border-gray-200 rounded-md p-3 resize-y focus:outline-none focus:ring-2 focus:ring-purple-400"
-                  value={note.anamnese.medicamentos}
-                  onChange={(e) => setNote({
-                    ...note,
-                    anamnese: { ...note.anamnese, medicamentos: e.target.value }
-                  })}
-                  rows={2}
-                />
-              </div>
-              <div>
-                <h4 className="font-semibold text-[#333333] mb-2">Objetivos do Paciente</h4>
-                <textarea
-                  className="w-full text-[#333333] bg-white border border-gray-200 rounded-md p-3 resize-y focus:outline-none focus:ring-2 focus:ring-purple-400"
-                  value={note.anamnese.objetivos}
-                  onChange={(e) => setNote({
-                    ...note,
-                    anamnese: { ...note.anamnese, objetivos: e.target.value }
-                  })}
-                  rows={2}
-                />
-              </div>
-            </div>
-          )}
-        </div>
+	const SectionHeader = ({
+		id,
+		icon: Icon,
+		title,
+		color
+	}: {
+		id: SectionKey;
+		icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+		title: string;
+		color: string;
+	}) => {
+		const isExpanded = expandedSections.has(id);
+		return (
+			<button
+				onClick={() => toggleSection(id)}
+				className="flex w-full items-center justify-between rounded-2xl border border-white/70 bg-white/70 px-5 py-4 text-left shadow-[0_12px_32px_-24px_rgba(15,23,42,0.35)] transition-colors hover:bg-white"
+			>
+				<div className="flex items-center gap-3">
+					<span className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}>
+						<Icon className="h-5 w-5 text-white" aria-hidden="true" />
+					</span>
+					<h3 className="text-base font-semibold text-[#0F172A]">{title}</h3>
+				</div>
+				{isExpanded ? (
+					<ChevronUp className="h-5 w-5 text-[#94A3B8]" aria-hidden="true" />
+				) : (
+					<ChevronDown className="h-5 w-5 text-[#94A3B8]" aria-hidden="true" />
+				)}
+			</button>
+		);
+	};
 
-        {/* Diagnóstico */}
-        <div className="space-y-2">
-          <SectionHeader id="diagnostico" icon={Stethoscope} title="Diagnóstico Fisioterapêutico" color="bg-orange-500" />
-          {expandedSections.has('diagnostico') && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-3 animate-fade-in">
-              <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-r-lg">
-                <div className="font-semibold text-[#333333] mb-1">Diagnóstico Principal</div>
-                <textarea
-                  className="w-full text-[#333333] bg-white border border-orange-200 rounded-md p-3 resize-y focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  value={note.diagnosticoFisioterapeutico.principal}
-                  onChange={(e) => setNote({
-                    ...note,
-                    diagnosticoFisioterapeutico: { ...note.diagnosticoFisioterapeutico, principal: e.target.value }
-                  })}
-                  rows={2}
-                />
-              </div>
-              <div>
-                <h4 className="font-semibold text-[#333333] mb-2">Diagnósticos Secundários</h4>
-                <textarea
-                  className="w-full text-[#333333] bg-white border border-gray-200 rounded-md p-3 resize-y focus:outline-none"
-                  placeholder={"Uma linha por diagnóstico"}
-                  value={note.diagnosticoFisioterapeutico.secundario.join('\n')}
-                  onChange={(e) => setNote({
-                    ...note,
-                    diagnosticoFisioterapeutico: { ...note.diagnosticoFisioterapeutico, secundario: e.target.value.split('\n').filter(Boolean) }
-                  })}
-                  rows={4}
-                />
-              </div>
-              <div className="bg-gray-50 p-3 rounded-lg">
-                <div className="text-sm font-medium text-[#666666]">CIF (Classificação Internacional de Funcionalidade)</div>
-                <input
-                  className="w-full text-[#333333] bg-white border border-gray-200 rounded-md p-2 focus:outline-none"
-                  value={note.diagnosticoFisioterapeutico.cif}
-                  onChange={(e) => setNote({
-                    ...note,
-                    diagnosticoFisioterapeutico: { ...note.diagnosticoFisioterapeutico, cif: e.target.value }
-                  })}
-                />
-              </div>
-            </div>
-          )}
-        </div>
+	return (
+		<div className="relative min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#EEF2FF] to-[#F4F3FF] px-4 py-10">
+			<div
+				aria-hidden="true"
+				className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-[radial-gradient(circle_at_top,rgba(129,140,248,0.22),transparent_60%)]"
+			/>
 
-        {/* Intervenções */}
-        <div className="space-y-2">
-          <SectionHeader id="intervencoes" icon={Activity} title="Intervenções Realizadas" color="bg-[#5A9BCF]" />
-          {expandedSections.has('intervencoes') && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4 animate-fade-in">
-              <div>
-                <h4 className="font-semibold text-[#333333] mb-3 flex items-center space-x-2">
-                  <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                  <span>Técnicas Manuais</span>
-                </h4>
-                <textarea
-                  className="w-full text-[#333333] bg-white border border-gray-200 rounded-md p-3 resize-y focus:outline-none"
-                  placeholder={"Uma linha por técnica"}
-                  value={note.intervencoes.tecnicasManuais.join('\n')}
-                  onChange={(e) => setNote({
-                    ...note,
-                    intervencoes: { ...note.intervencoes, tecnicasManuais: e.target.value.split('\n').filter(Boolean) }
-                  })}
-                  rows={4}
-                />
-              </div>
-              <div>
-                <h4 className="font-semibold text-[#333333] mb-3 flex items-center space-x-2">
-                  <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                  <span>Exercícios Terapêuticos</span>
-                </h4>
-                <textarea
-                  className="w-full text-[#333333] bg-white border border-gray-200 rounded-md p-3 resize-y focus:outline-none"
-                  placeholder={"Uma linha por exercício"}
-                  value={note.intervencoes.exerciciosTerapeuticos.join('\n')}
-                  onChange={(e) => setNote({
-                    ...note,
-                    intervencoes: { ...note.intervencoes, exerciciosTerapeuticos: e.target.value.split('\n').filter(Boolean) }
-                  })}
-                  rows={4}
-                />
-              </div>
-              <div>
-                <h4 className="font-semibold text-[#333333] mb-3 flex items-center space-x-2">
-                  <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-                  <span>Recursos Eletrotermofototerapêuticos</span>
-                </h4>
-                <textarea
-                  className="w-full text-[#333333] bg-white border border-gray-200 rounded-md p-3 resize-y focus:outline-none"
-                  placeholder={"Uma linha por recurso"}
-                  value={note.intervencoes.recursosEletrotermofototerapeticos.join('\n')}
-                  onChange={(e) => setNote({
-                    ...note,
-                    intervencoes: { ...note.intervencoes, recursosEletrotermofototerapeticos: e.target.value.split('\n').filter(Boolean) }
-                  })}
-                  rows={4}
-                />
-              </div>
-            </div>
-          )}
-        </div>
+			<div className="relative mx-auto flex max-w-6xl flex-col gap-8">
+				<header className="rounded-3xl border border-white/70 bg-white/70 px-8 py-6 shadow-[0_32px_80px_-48px_rgba(15,23,42,0.45)] backdrop-blur">
+					<div className="flex flex-wrap items-center justify-between gap-6">
+						<div className="flex items-center gap-4">
+							<span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4F46E5] to-[#6366F1] text-white shadow-[0_18px_38px_-24px_rgba(79,70,229,0.65)]">
+								<FileText className="h-6 w-6" aria-hidden="true" />
+							</span>
+							<div>
+								<h1 className="text-2xl font-semibold text-[#0F172A]">Sessão finalizada</h1>
+								<p className="text-sm text-[#64748B]">Revise, personalize os detalhes gerados automaticamente e salve.</p>
+							</div>
+						</div>
+						<div className="flex flex-wrap gap-3 text-sm text-[#1E293B]">
+							<span className="inline-flex min-w-[160px] items-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white px-4 py-2">
+								<User className="h-4 w-4 text-[#6366F1]" aria-hidden="true" />
+								<span className="font-medium">{sessionData.patient_name}</span>
+							</span>
+							<span className="inline-flex min-w-[140px] items-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white px-4 py-2">
+								<Calendar className="h-4 w-4 text-[#6366F1]" aria-hidden="true" />
+								<span>{date}</span>
+							</span>
+							<span className="inline-flex min-w-[140px] items-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white px-4 py-2">
+								<TrendingUp className="h-4 w-4 text-[#6366F1]" aria-hidden="true" />
+								<span>{sessionData.duration_minutes} min</span>
+							</span>
+						</div>
+					</div>
+				</header>
 
-        {/* Resposta ao Tratamento */}
-        <div className="space-y-2">
-          <SectionHeader id="resposta" icon={TrendingUp} title="Resposta ao Tratamento" color="bg-green-500" />
-          {expandedSections.has('resposta') && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-3 animate-fade-in">
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-green-800 mb-2">Resposta Imediata</h4>
-                <textarea
-                  className="w-full text-[#333333] bg-white border border-green-200 rounded-md p-3 resize-y focus:outline-none focus:ring-2 focus:ring-green-400"
-                  value={note.respostaTratamento.imediata}
-                  onChange={(e) => setNote({
-                    ...note,
-                    respostaTratamento: { ...note.respostaTratamento, imediata: e.target.value }
-                  })}
-                  rows={3}
-                />
-              </div>
-              <div>
-                <h4 className="font-semibold text-[#333333] mb-2">Efeitos Adversos</h4>
-                <textarea
-                  className="w-full text-[#333333] bg-white border border-gray-200 rounded-md p-3 resize-y focus:outline-none"
-                  value={note.respostaTratamento.efeitos}
-                  onChange={(e) => setNote({
-                    ...note,
-                    respostaTratamento: { ...note.respostaTratamento, efeitos: e.target.value }
-                  })}
-                  rows={2}
-                />
-              </div>
-              <div>
-                <h4 className="font-semibold text-[#333333] mb-2">Feedback do Paciente</h4>
-                <textarea
-                  className="w-full text-[#333333] bg-white border border-gray-200 rounded-md p-3 resize-y focus:outline-none"
-                  value={note.respostaTratamento.feedback}
-                  onChange={(e) => setNote({
-                    ...note,
-                    respostaTratamento: { ...note.respostaTratamento, feedback: e.target.value }
-                  })}
-                  rows={2}
-                />
-              </div>
-            </div>
-          )}
-        </div>
+				<main className="space-y-6 pb-32">
+					<NoteAIDisclaimer show={showAIDisclaimer} />
 
-        {/* Orientações */}
-        <div className="space-y-2">
-          <SectionHeader id="orientacoes" icon={Target} title="Orientações ao Paciente" color="bg-indigo-500" />
-          {expandedSections.has('orientacoes') && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4 animate-fade-in">
-              <div>
-                <h4 className="font-semibold text-[#333333] mb-3">Exercícios Domiciliares</h4>
-                <textarea
-                  className="w-full text-[#333333] bg-white border border-gray-200 rounded-md p-3 resize-y focus:outline-none"
-                  placeholder={"Uma linha por orientação"}
-                  value={note.orientacoes.domiciliares.join('\n')}
-                  onChange={(e) => setNote({
-                    ...note,
-                    orientacoes: { ...note.orientacoes, domiciliares: e.target.value.split('\n').filter(Boolean) }
-                  })}
-                  rows={4}
-                />
-              </div>
-              <div>
-                <h4 className="font-semibold text-[#333333] mb-3">Orientações Ergonômicas</h4>
-                <textarea
-                  className="w-full text-[#333333] bg-white border border-gray-200 rounded-md p-3 resize-y focus:outline-none"
-                  placeholder={"Uma linha por orientação"}
-                  value={note.orientacoes.ergonomicas.join('\n')}
-                  onChange={(e) => setNote({
-                    ...note,
-                    orientacoes: { ...note.orientacoes, ergonomicas: e.target.value.split('\n').filter(Boolean) }
-                  })}
-                  rows={4}
-                />
-              </div>
-              <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-r-lg">
-                <h4 className="font-semibold text-yellow-800 mb-3 flex items-center space-x-2">
-                  <AlertCircle className="w-5 h-5" />
-                  <span>Precauções</span>
-                </h4>
-                <textarea
-                  className="w-full text-[#333333] bg-white border border-yellow-200 rounded-md p-3 resize-y focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                  placeholder={"Uma linha por precaução"}
-                  value={note.orientacoes.precaucoes.join('\n')}
-                  onChange={(e) => setNote({
-                    ...note,
-                    orientacoes: { ...note.orientacoes, precaucoes: e.target.value.split('\n').filter(Boolean) }
-                  })}
-                  rows={4}
-                />
-              </div>
-            </div>
-          )}
-        </div>
+					<div className="space-y-2">
+						<SectionHeader id="resumo" icon={Activity} title="Resumo executivo" color="bg-[#4F46E5]" />
+						{expandedSections.has("resumo") ? (
+							<div className="space-y-5 rounded-3xl border border-white/70 bg-white/80 p-6 shadow-[0_28px_70px_-46px_rgba(15,23,42,0.45)] animate-fade-in">
+								<div className="rounded-2xl border border-[#E0E7FF] bg-[#EEF2FF] p-4">
+									<div className="flex items-center gap-2 text-sm font-semibold text-[#4F46E5]">
+										<AlertCircle className="h-4 w-4" aria-hidden="true" />
+										Queixa principal
+									</div>
+									<textarea
+										className="mt-3 w-full rounded-xl border border-[#C7D2FE] bg-white px-4 py-3 text-sm text-[#0F172A] transition-shadow focus:border-[#6366F1] focus:shadow-[0_12px_28px_-20px_rgba(79,70,229,0.55)] focus:outline-none"
+										value={note.resumoExecutivo.queixaPrincipal}
+										onChange={(event) =>
+											setNote({
+												...note,
+												resumoExecutivo: { ...note.resumoExecutivo, queixaPrincipal: event.target.value }
+											})
+										}
+										rows={3}
+									/>
+								</div>
+								<div className="grid gap-4 md:grid-cols-2">
+									<div className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-4">
+										<p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#DC2626]">Nível de dor (EVA)</p>
+										<div className="mt-2 flex items-end gap-2">
+											<input
+												type="number"
+												min={0}
+												max={10}
+												className="w-20 border-none bg-transparent text-4xl font-semibold text-[#DC2626] focus:outline-none"
+												value={note.resumoExecutivo.nivelDor}
+												onChange={(event) =>
+													setNote({
+														...note,
+														resumoExecutivo: { ...note.resumoExecutivo, nivelDor: Number(event.target.value) }
+													})
+												}
+											/>
+											<span className="pb-1 text-2xl text-[#DC2626]">/10</span>
+										</div>
+									</div>
+									<div className="rounded-2xl border border-[#BBF7D0] bg-[#F0FDF4] p-4">
+										<p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#15803D]">Evolução</p>
+										<div className="mt-2 flex items-center gap-2">
+											<TrendingUp className="h-5 w-5 text-[#16A34A]" aria-hidden="true" />
+											<input
+												className="flex-1 border-none bg-transparent text-lg font-semibold text-[#166534] focus:outline-none"
+												value={note.resumoExecutivo.evolucao}
+												onChange={(event) =>
+													setNote({
+														...note,
+														resumoExecutivo: { ...note.resumoExecutivo, evolucao: event.target.value }
+													})
+												}
+											/>
+										</div>
+									</div>
+								</div>
+							</div>
+						) : null}
+					</div>
 
-        {/* Plano de Tratamento */}
-        <div className="space-y-2">
-          <SectionHeader id="plano" icon={Target} title="Plano de Tratamento" color="bg-teal-500" />
-          {expandedSections.has('plano') && (
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4 animate-fade-in">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-teal-50 p-4 rounded-lg">
-                  <div className="text-sm text-teal-600 font-medium mb-1">Frequência</div>
-                  <input
-                    className="w-full text-[#333333] bg-white border border-teal-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-teal-400"
-                    value={note.planoTratamento.frequencia}
-                    onChange={(e) => setNote({
-                      ...note,
-                      planoTratamento: { ...note.planoTratamento, frequencia: e.target.value }
-                    })}
-                  />
-                </div>
-                <div className="bg-teal-50 p-4 rounded-lg">
-                  <div className="text-sm text-teal-600 font-medium mb-1">Duração Prevista</div>
-                  <input
-                    className="w-full text-[#333333] bg-white border border-teal-200 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-teal-400"
-                    value={note.planoTratamento.duracaoPrevista}
-                    onChange={(e) => setNote({
-                      ...note,
-                      planoTratamento: { ...note.planoTratamento, duracaoPrevista: e.target.value }
-                    })}
-                  />
-                </div>
-              </div>
+					<div className="space-y-2">
+						<SectionHeader id="anamnese" icon={Clipboard} title="Anamnese" color="bg-purple-500" />
+						{expandedSections.has("anamnese") ? (
+							<div className="space-y-4 rounded-3xl border border-white/70 bg-white/80 p-6 shadow-[0_28px_70px_-46px_rgba(15,23,42,0.45)] animate-fade-in">
+								<div>
+									<p className="text-sm font-semibold text-[#0F172A]">Histórico atual</p>
+									<textarea
+										className="mt-2 w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#1E293B] focus:border-[#8B5CF6] focus:outline-none"
+										value={note.anamnese.historicoAtual}
+										onChange={(event) =>
+											setNote({
+												...note,
+												anamnese: { ...note.anamnese, historicoAtual: event.target.value }
+											})
+										}
+										rows={4}
+									/>
+								</div>
+								<div>
+									<p className="text-sm font-semibold text-[#0F172A]">Antecedentes pessoais</p>
+									<textarea
+										className="mt-2 w-full rounded-2xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#1E293B] focus:border-[#8B5CF6] focus:outline-none"
+										value={note.anamnese.antecedentesPessoais}
+										onChange={(event) =>
+											setNote({
+												...note,
+												anamnese: { ...note.anamnese, antecedentesPessoais: event.target.value }
+											})
+										}
+										rows={3}
+									/>
+								</div>
+								<div className="grid gap-4 md:grid-cols-2">
+									<div>
+										<p className="text-sm font-semibold text-[#0F172A]">Medicamentos</p>
+										<textarea
+											className="mt-2 w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#1E293B] focus:border-[#8B5CF6] focus:outline-none"
+											value={note.anamnese.medicamentos}
+											onChange={(event) =>
+												setNote({
+													...note,
+													anamnese: { ...note.anamnese, medicamentos: event.target.value }
+												})
+											}
+											rows={3}
+										/>
+									</div>
+									<div>
+										<p className="text-sm font-semibold text-[#0F172A]">Objetivos do paciente</p>
+										<textarea
+											className="mt-2 w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#1E293B] focus:border-[#8B5CF6] focus:outline-none"
+											value={note.anamnese.objetivos}
+											onChange={(event) =>
+												setNote({
+													...note,
+													anamnese: { ...note.anamnese, objetivos: event.target.value }
+												})
+											}
+											rows={3}
+										/>
+									</div>
+								</div>
+							</div>
+						) : null}
+					</div>
 
-              <div>
-                <h4 className="font-semibold text-[#333333] mb-3">Objetivos de Curto Prazo (2-3 semanas)</h4>
-                <textarea
-                  className="w-full text-[#333333] bg-white border border-gray-200 rounded-md p-3 resize-y focus:outline-none"
-                  placeholder={"Uma linha por objetivo"}
-                  value={note.planoTratamento.objetivosCurtoPrazo.join('\n')}
-                  onChange={(e) => setNote({
-                    ...note,
-                    planoTratamento: { ...note.planoTratamento, objetivosCurtoPrazo: e.target.value.split('\n').filter(Boolean) }
-                  })}
-                  rows={4}
-                />
-              </div>
+					<div className="space-y-2">
+						<SectionHeader
+							id="diagnostico"
+							icon={Stethoscope}
+							title="Diagnóstico fisioterapêutico"
+							color="bg-blue-500"
+						/>
+						{expandedSections.has("diagnostico") ? (
+							<div className="space-y-4 rounded-3xl border border-white/70 bg-white/80 p-6 shadow-[0_28px_70px_-46px_rgba(15,23,42,0.45)] animate-fade-in">
+								<div>
+									<p className="text-sm font-semibold text-[#0F172A]">Diagnóstico principal</p>
+									<textarea
+										className="mt-2 w-full rounded-xl border border-[#DBEAFE] bg-white px-4 py-3 text-sm text-[#1E293B] focus:border-[#3B82F6] focus:outline-none"
+										value={note.diagnosticoFisioterapeutico.principal}
+										onChange={(event) =>
+											setNote({
+												...note,
+												diagnosticoFisioterapeutico: {
+													...note.diagnosticoFisioterapeutico,
+													principal: event.target.value
+												}
+											})
+										}
+										rows={3}
+									/>
+								</div>
+								<div>
+									<p className="text-sm font-semibold text-[#0F172A]">Diagnósticos secundários (um por linha)</p>
+									<textarea
+										className="mt-2 w-full rounded-xl border border-[#DBEAFE] bg-white px-4 py-3 text-sm text-[#1E293B] focus:border-[#3B82F6] focus:outline-none"
+										value={note.diagnosticoFisioterapeutico.secundario.join("\n")}
+										onChange={(event) =>
+											setNote({
+												...note,
+												diagnosticoFisioterapeutico: {
+													...note.diagnosticoFisioterapeutico,
+													secundario: event.target.value.split("\n").filter(Boolean)
+												}
+											})
+										}
+										rows={4}
+									/>
+								</div>
+								<div>
+									<p className="text-sm font-semibold text-[#0F172A]">Código CIF</p>
+									<input
+										className="mt-2 w-full rounded-xl border border-[#DBEAFE] bg-white px-4 py-3 text-sm text-[#1E293B] focus:border-[#3B82F6] focus:outline-none"
+										value={note.diagnosticoFisioterapeutico.cif}
+										onChange={(event) =>
+											setNote({
+												...note,
+												diagnosticoFisioterapeutico: {
+													...note.diagnosticoFisioterapeutico,
+													cif: event.target.value
+												}
+											})
+										}
+									/>
+								</div>
+							</div>
+						) : null}
+					</div>
 
-              <div>
-                <h4 className="font-semibold text-[#333333] mb-3">Objetivos de Longo Prazo (6-12 semanas)</h4>
-                <textarea
-                  className="w-full text-[#333333] bg-white border border-gray-200 rounded-md p-3 resize-y focus:outline-none"
-                  placeholder={"Uma linha por objetivo"}
-                  value={note.planoTratamento.objetivosLongoPrazo.join('\n')}
-                  onChange={(e) => setNote({
-                    ...note,
-                    planoTratamento: { ...note.planoTratamento, objetivosLongoPrazo: e.target.value.split('\n').filter(Boolean) }
-                  })}
-                  rows={4}
-                />
-              </div>
+					<div className="space-y-2">
+						<SectionHeader id="intervencoes" icon={Activity} title="Intervenções" color="bg-indigo-500" />
+						{expandedSections.has("intervencoes") ? (
+							<div className="space-y-6 rounded-3xl border border-white/70 bg-white/80 p-6 shadow-[0_28px_70px_-46px_rgba(15,23,42,0.45)] animate-fade-in">
+								{(
+									[
+										{
+											label: "Técnicas manuais",
+											value: note.intervencoes.tecnicasManuais,
+											key: "tecnicasManuais"
+										},
+										{
+											label: "Exercícios terapêuticos",
+											value: note.intervencoes.exerciciosTerapeuticos,
+											key: "exerciciosTerapeuticos"
+										},
+										{
+											label: "Recursos eletrotermofototerapêuticos",
+											value: note.intervencoes.recursosEletrotermofototerapeticos,
+											key: "recursosEletrotermofototerapeticos"
+										}
+									] as const
+								).map((section) => (
+									<div key={section.key}>
+										<p className="text-sm font-semibold text-[#0F172A]">{section.label} (um por linha)</p>
+										<textarea
+											className="mt-2 w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#1E293B] focus:border-[#6366F1] focus:outline-none"
+											value={section.value.join("\n")}
+											onChange={(event) =>
+												setNote({
+													...note,
+													intervencoes: {
+														...note.intervencoes,
+														[section.key]: event.target.value.split("\n").filter(Boolean)
+													}
+												})
+											}
+											rows={4}
+										/>
+									</div>
+								))}
+							</div>
+						) : null}
+					</div>
 
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-[#333333] mb-3">Critérios de Alta</h4>
-                <textarea
-                  className="w-full text-[#333333] bg-white border border-gray-200 rounded-md p-3 resize-y focus:outline-none"
-                  placeholder={"Uma linha por critério"}
-                  value={note.planoTratamento.criteriosAlta.join('\n')}
-                  onChange={(e) => setNote({
-                    ...note,
-                    planoTratamento: { ...note.planoTratamento, criteriosAlta: e.target.value.split('\n').filter(Boolean) }
-                  })}
-                  rows={4}
-                />
-              </div>
-            </div>
-          )}
-        </div>
+					<div className="space-y-2">
+						<SectionHeader id="resposta" icon={TrendingUp} title="Resposta ao tratamento" color="bg-emerald-500" />
+						{expandedSections.has("resposta") ? (
+							<div className="space-y-4 rounded-3xl border border-white/70 bg-white/80 p-6 shadow-[0_28px_70px_-46px_rgba(15,23,42,0.45)] animate-fade-in">
+								{(
+									[
+										{ label: "Resposta imediata", key: "imediata" },
+										{ label: "Efeitos observados", key: "efeitos" },
+										{ label: "Feedback do paciente", key: "feedback" }
+									] as const
+								).map((field) => (
+									<div key={field.key}>
+										<p className="text-sm font-semibold text-[#0F172A]">{field.label}</p>
+										<textarea
+											className="mt-2 w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#1E293B] focus:border-[#34D399] focus:outline-none"
+											value={note.respostaTratamento[field.key]}
+											onChange={(event) =>
+												setNote({
+													...note,
+													respostaTratamento: {
+														...note.respostaTratamento,
+														[field.key]: event.target.value
+													}
+												})
+											}
+											rows={field.key === "imediata" ? 4 : 3}
+										/>
+									</div>
+								))}
+							</div>
+						) : null}
+					</div>
 
-        {/* Observações Adicionais */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h4 className="font-semibold text-[#333333] mb-2 flex items-center space-x-2">
-            <FileText className="w-5 h-5 text-[#5A9BCF]" />
-            <span>Observações Adicionais</span>
-          </h4>
-          <textarea
-            className="w-full text-[#333333] bg-white border border-gray-200 rounded-md p-3 resize-y focus:outline-none"
-            value={note.observacoesAdicionais}
-            onChange={(e) => setNote({
-              ...note,
-              observacoesAdicionais: e.target.value
-            })}
-            rows={4}
-          />
-        </div>
+					<div className="space-y-2">
+						<SectionHeader id="orientacoes" icon={Clipboard} title="Orientações" color="bg-orange-500" />
+						{expandedSections.has("orientacoes") ? (
+							<div className="space-y-4 rounded-3xl border border-white/70 bg-white/80 p-6 shadow-[0_28px_70px_-46px_rgba(15,23,42,0.45)] animate-fade-in">
+								{(
+									[
+										{ label: "Orientações domiciliares", key: "domiciliares", accent: "border-[#A5B4FC]" },
+										{ label: "Orientações ergonômicas", key: "ergonomicas", accent: "border-[#FCD34D]" },
+										{ label: "Precauções", key: "precaucoes", accent: "border-[#FDBA74]" }
+									] as const
+								).map((section) => (
+									<div key={section.key} className={`rounded-2xl border ${section.accent} bg-white p-4`}>
+										<p className="text-sm font-semibold text-[#0F172A]">{section.label}</p>
+										<textarea
+											className="mt-2 w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#1E293B] focus:border-[#fb923c] focus:outline-none"
+											value={note.orientacoes[section.key].join("\n")}
+											onChange={(event) =>
+												setNote({
+													...note,
+													orientacoes: {
+														...note.orientacoes,
+														[section.key]: event.target.value.split("\n").filter(Boolean)
+													}
+												})
+											}
+											rows={4}
+										/>
+									</div>
+								))}
+							</div>
+						) : null}
+					</div>
 
-        {/* Próxima Sessão */}
-        <div className="bg-gradient-to-r from-[#5A9BCF]/10 to-[#4A8BBF]/10 rounded-lg border-2 border-[#5A9BCF]/20 p-6">
-          <h4 className="font-semibold text-[#333333] mb-2 flex items-center space-x-2">
-            <Calendar className="w-5 h-5 text-[#5A9BCF]" />
-            <span>Próxima Sessão</span>
-          </h4>
-          <div className="space-y-1">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-2 sm:space-y-0">
-              <label className="text-[#666666] font-medium min-w-[90px]">Retorno em:</label>
-              <input
-                className="flex-1 text-[#333333] bg-white border border-blue-200 rounded-md p-2 focus:outline-none"
-                value={note.proximaSessao.data}
-                onChange={(e) => setNote({
-                  ...note,
-                  proximaSessao: { ...note.proximaSessao, data: e.target.value }
-                })}
-              />
-            </div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-2 sm:space-y-0">
-              <label className="text-[#666666] font-medium min-w-[90px]">Foco:</label>
-              <input
-                className="flex-1 text-[#333333] bg-white border border-blue-200 rounded-md p-2 focus:outline-none"
-                value={note.proximaSessao.foco}
-                onChange={(e) => setNote({
-                  ...note,
-                  proximaSessao: { ...note.proximaSessao, foco: e.target.value }
-                })}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+					<div className="space-y-2">
+						<SectionHeader id="plano" icon={Calendar} title="Planejamento" color="bg-sky-500" />
+						{expandedSections.has("plano") ? (
+							<div className="space-y-4 rounded-3xl border border-white/70 bg-white/80 p-6 shadow-[0_28px_70px_-46px_rgba(15,23,42,0.45)] animate-fade-in">
+								<div className="grid gap-4 md:grid-cols-2">
+									<div>
+										<p className="text-sm font-semibold text-[#0F172A]">Frequência</p>
+										<input
+											className="mt-2 w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#1E293B] focus:border-[#38BDF8] focus:outline-none"
+											value={note.planoTratamento.frequencia}
+											onChange={(event) =>
+												setNote({
+													...note,
+													planoTratamento: { ...note.planoTratamento, frequencia: event.target.value }
+												})
+											}
+										/>
+									</div>
+									<div>
+										<p className="text-sm font-semibold text-[#0F172A]">Duração prevista</p>
+										<input
+											className="mt-2 w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#1E293B] focus:border-[#38BDF8] focus:outline-none"
+											value={note.planoTratamento.duracaoPrevista}
+											onChange={(event) =>
+												setNote({
+													...note,
+													planoTratamento: { ...note.planoTratamento, duracaoPrevista: event.target.value }
+												})
+											}
+										/>
+									</div>
+								</div>
+								<div className="grid gap-4 md:grid-cols-2">
+									<div>
+										<p className="text-sm font-semibold text-[#0F172A]">Objetivos de curto prazo</p>
+										<textarea
+											className="mt-2 w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#1E293B] focus:border-[#38BDF8] focus:outline-none"
+											value={note.planoTratamento.objetivosCurtoPrazo.join("\n")}
+											onChange={(event) =>
+												setNote({
+													...note,
+													planoTratamento: {
+														...note.planoTratamento,
+														objetivosCurtoPrazo: event.target.value.split("\n").filter(Boolean)
+													}
+												})
+											}
+											rows={4}
+										/>
+									</div>
+									<div>
+										<p className="text-sm font-semibold text-[#0F172A]">Objetivos de longo prazo</p>
+										<textarea
+											className="mt-2 w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#1E293B] focus:border-[#38BDF8] focus:outline-none"
+											value={note.planoTratamento.objetivosLongoPrazo.join("\n")}
+											onChange={(event) =>
+												setNote({
+													...note,
+													planoTratamento: {
+														...note.planoTratamento,
+														objetivosLongoPrazo: event.target.value.split("\n").filter(Boolean)
+													}
+												})
+											}
+											rows={4}
+										/>
+									</div>
+								</div>
+								<div>
+									<p className="text-sm font-semibold text-[#0F172A]">Critérios de alta</p>
+									<textarea
+										className="mt-2 w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#1E293B] focus:border-[#38BDF8] focus:outline-none"
+										value={note.planoTratamento.criteriosAlta.join("\n")}
+										onChange={(event) =>
+											setNote({
+												...note,
+												planoTratamento: {
+													...note.planoTratamento,
+													criteriosAlta: event.target.value.split("\n").filter(Boolean)
+												}
+											})
+										}
+										rows={4}
+									/>
+								</div>
+								<div className="rounded-2xl border border-[#BAE6FD] bg-[#E0F2FE] p-4">
+									<p className="text-sm font-semibold text-[#0369A1]">Próxima sessão</p>
+									<div className="mt-3 grid gap-4 md:grid-cols-2">
+										<div>
+											<p className="text-xs uppercase tracking-[0.18em] text-[#0369A1]">Retorno</p>
+											<input
+												className="mt-2 w-full rounded-xl border border-[#BAE6FD] bg-white px-4 py-3 text-sm text-[#0F172A] focus:border-[#0EA5E9] focus:outline-none"
+												value={note.proximaSessao.data}
+												onChange={(event) =>
+													setNote({
+														...note,
+														proximaSessao: { ...note.proximaSessao, data: event.target.value }
+													})
+												}
+											/>
+										</div>
+										<div>
+											<p className="text-xs uppercase tracking-[0.18em] text-[#0369A1]">Foco</p>
+											<input
+												className="mt-2 w-full rounded-xl border border-[#BAE6FD] bg-white px-4 py-3 text-sm text-[#0F172A] focus:border-[#0EA5E9] focus:outline-none"
+												value={note.proximaSessao.foco}
+												onChange={(event) =>
+													setNote({
+														...note,
+														proximaSessao: { ...note.proximaSessao, foco: event.target.value }
+													})
+												}
+											/>
+										</div>
+									</div>
+								</div>
+							</div>
+						) : null}
+					</div>
 
-      {/* Footer Fixo */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="text-sm text-[#666666]">
-            <span className="font-medium">ID da Sessão:</span> {sessionData.id}
-          </div>
-          <div className="flex space-x-3">
-            <button
-              onClick={handleCopyNote}
-              className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-[#666666] rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4 text-green-600" />
-                  <span className="text-green-600">Copiado!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4" />
-                  <span>Copiar Nota</span>
-                </>
-              )}
-            </button>
-            <button className="flex items-center space-x-2 px-4 py-2 bg-[#5A9BCF] text-white rounded-lg hover:bg-[#4A8BBF] transition-colors">
-              <Download className="w-4 h-4" />
-              <span>Exportar PDF</span>
-            </button>
-            <button
-              onClick={handleSaveClick}
-              className="flex items-center space-x-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-lg font-semibold"
-            >
-              <Save className="w-4 h-4" />
-              <span>Salvar Sessão</span>
-            </button>
-            <button
-              onClick={handleClose}
-              className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-[#666666] rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <X className="w-4 h-4" />
-              <span>Descartar</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+					{transcription.length > 0 ? (
+						<div className="space-y-2">
+							<SectionHeader
+								id="transcricao"
+								icon={FileText}
+								title="Transcrição da sessão"
+								color="bg-slate-600"
+							/>
+							{expandedSections.has("transcricao") ? (
+								<div className="space-y-3 rounded-3xl border border-white/70 bg-white/80 p-6 shadow-[0_28px_70px_-46px_rgba(15,23,42,0.45)] animate-fade-in">
+									{transcription.map((chunk, index) => (
+										<p key={index} className="text-sm leading-relaxed text-[#1E293B]">
+											{chunk}
+										</p>
+									))}
+								</div>
+							) : null}
+						</div>
+					) : null}
+				</main>
+
+				<div className="sticky bottom-6 mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 rounded-3xl border border-white/70 bg-white/90 px-6 py-5 shadow-[0_32px_80px_-48px_rgba(15,23,42,0.45)] backdrop-blur">
+					<span className="text-sm text-[#64748B]">
+						<span className="font-semibold text-[#0F172A]">Sessão:</span> {sessionData.id}
+					</span>
+					<div className="flex flex-wrap gap-3">
+						<button
+							onClick={handleCopyNote}
+							className="inline-flex items-center gap-2 rounded-2xl border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#475569] transition-colors hover:bg-[#F8FAFC]"
+						>
+							{copied ? (
+								<>
+									<Check className="h-4 w-4 text-[#22C55E]" aria-hidden="true" />
+									<span className="text-[#047857]">Copiado!</span>
+								</>
+							) : (
+								<>
+									<Copy className="h-4 w-4" aria-hidden="true" />
+									<span>Copiar nota</span>
+								</>
+							)}
+						</button>
+						<button className="inline-flex items-center gap-2 rounded-2xl border border-transparent bg-[#EEF2FF] px-4 py-2 text-sm font-medium text-[#4F46E5] transition-transform hover:-translate-y-0.5">
+							<Download className="h-4 w-4" aria-hidden="true" />
+							Exportar PDF
+						</button>
+						<button
+							onClick={handleSaveClick}
+							className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#22C55E] to-[#16A34A] px-5 py-2 text-sm font-semibold text-white shadow-[0_22px_45px_-28px_rgba(34,197,94,0.55)] transition-transform hover:-translate-y-0.5"
+						>
+							<Save className="h-4 w-4" aria-hidden="true" />
+							Salvar sessão
+						</button>
+						<button
+							onClick={handleClose}
+							className="btn-cancel rounded-2xl"
+						>
+							<X className="h-4 w-4" aria-hidden="true" />
+							Descartar
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	);
 };
 
 export default SessionSummary;

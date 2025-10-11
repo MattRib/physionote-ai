@@ -64,13 +64,13 @@ const Pagination: React.FC<PaginationProps> = ({
   const pageNumbers = getPageNumbers();
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-gray-200">
+  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-[#E2E8F0]">
       
       {/* Results Info */}
-      <div className="text-sm text-[#666666]">
-        Mostrando <span className="font-semibold text-[#333333]">{startItem}</span> a{' '}
-        <span className="font-semibold text-[#333333]">{endItem}</span> de{' '}
-        <span className="font-semibold text-[#333333]">{totalItems}</span> sessões
+      <div className="text-sm text-[#64748B]">
+        Mostrando <span className="font-semibold text-[#111827]">{startItem}</span> a{' '}
+        <span className="font-semibold text-[#111827]">{endItem}</span> de{' '}
+        <span className="font-semibold text-[#111827]">{totalItems}</span> sessões
       </div>
 
       {/* Pagination Controls */}
@@ -80,10 +80,10 @@ const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
-          className="p-2 rounded-lg border-2 border-gray-200
-                   hover:border-[#5A9BCF] hover:bg-[#5A9BCF]/10 hover:text-[#5A9BCF]
-                   disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200
-                   transition-all duration-200 text-[#666666]"
+          className="p-2 rounded-lg border-2 border-[#E2E8F0]
+                   hover:border-[#6366F1] hover:bg-[#EEF2FF] hover:text-[#4F46E5]
+                   disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[#E2E8F0]
+                   transition-all duration-200 text-[#64748B]"
           title="Primeira página"
         >
           <ChevronsLeft className="w-5 h-5" />
@@ -93,10 +93,10 @@ const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="p-2 rounded-lg border-2 border-gray-200
-                   hover:border-[#5A9BCF] hover:bg-[#5A9BCF]/10 hover:text-[#5A9BCF]
-                   disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200
-                   transition-all duration-200 text-[#666666]"
+          className="p-2 rounded-lg border-2 border-[#E2E8F0]
+                   hover:border-[#6366F1] hover:bg-[#EEF2FF] hover:text-[#4F46E5]
+                   disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[#E2E8F0]
+                   transition-all duration-200 text-[#64748B]"
           title="Página anterior"
         >
           <ChevronLeft className="w-5 h-5" />
@@ -106,7 +106,7 @@ const Pagination: React.FC<PaginationProps> = ({
         <div className="hidden sm:flex items-center space-x-2">
           {pageNumbers.map((page, index) => (
             page === '...' ? (
-              <span key={`ellipsis-${index}`} className="px-3 py-2 text-[#666666]">
+              <span key={`ellipsis-${index}`} className="px-3 py-2 text-[#64748B]">
                 ...
               </span>
             ) : (
@@ -116,8 +116,8 @@ const Pagination: React.FC<PaginationProps> = ({
                 className={`px-4 py-2 rounded-lg border-2 font-medium
                          transition-all duration-200 min-w-[44px]
                          ${currentPage === page
-                           ? 'border-[#5A9BCF] bg-[#5A9BCF] text-white'
-                           : 'border-gray-200 text-[#666666] hover:border-[#5A9BCF] hover:bg-[#5A9BCF]/10 hover:text-[#5A9BCF]'
+                           ? 'border-[#4F46E5] bg-[#4F46E5] text-white shadow-sm'
+                           : 'border-[#E2E8F0] text-[#64748B] hover:border-[#6366F1] hover:bg-[#EEF2FF] hover:text-[#4F46E5]'
                          }`}
               >
                 {page}
@@ -127,7 +127,7 @@ const Pagination: React.FC<PaginationProps> = ({
         </div>
 
         {/* Mobile: Current Page Indicator */}
-        <div className="sm:hidden px-4 py-2 text-sm font-medium text-[#333333]">
+  <div className="sm:hidden px-4 py-2 text-sm font-medium text-[#111827]">
           {currentPage} / {totalPages}
         </div>
 
@@ -135,10 +135,10 @@ const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="p-2 rounded-lg border-2 border-gray-200
-                   hover:border-[#5A9BCF] hover:bg-[#5A9BCF]/10 hover:text-[#5A9BCF]
-                   disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200
-                   transition-all duration-200 text-[#666666]"
+          className="p-2 rounded-lg border-2 border-[#E2E8F0]
+                   hover:border-[#6366F1] hover:bg-[#EEF2FF] hover:text-[#4F46E5]
+                   disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[#E2E8F0]
+                   transition-all duration-200 text-[#64748B]"
           title="Próxima página"
         >
           <ChevronRight className="w-5 h-5" />
@@ -148,10 +148,10 @@ const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage === totalPages}
-          className="p-2 rounded-lg border-2 border-gray-200
-                   hover:border-[#5A9BCF] hover:bg-[#5A9BCF]/10 hover:text-[#5A9BCF]
-                   disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-gray-200
-                   transition-all duration-200 text-[#666666]"
+          className="p-2 rounded-lg border-2 border-[#E2E8F0]
+                   hover:border-[#6366F1] hover:bg-[#EEF2FF] hover:text-[#4F46E5]
+                   disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:border-[#E2E8F0]
+                   transition-all duration-200 text-[#64748B]"
           title="Última página"
         >
           <ChevronsRight className="w-5 h-5" />

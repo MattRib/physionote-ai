@@ -220,18 +220,18 @@ DOR: ${mockNote.resumoExecutivo.nivelDor}/10
     return (
       <button
         onClick={() => toggleSection(id)}
-        className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+        className="w-full flex items-center justify-between p-4 bg-[#F8FAFC] hover:bg-[#EEF2FF] rounded-lg transition-colors border border-transparent hover:border-[#E0E7FF]"
       >
         <div className="flex items-center space-x-3">
-          <div className={`w-10 h-10 ${color} rounded-lg flex items-center justify-center`}>
+          <div className={`w-10 h-10 ${color} rounded-lg flex items-center justify-center shadow-sm`}>
             <Icon className="w-5 h-5 text-white" />
           </div>
-          <h3 className="text-lg font-semibold text-[#333333]">{title}</h3>
+          <h3 className="text-lg font-semibold text-[#111827]">{title}</h3>
         </div>
         {isExpanded ? (
-          <ChevronUp className="w-5 h-5 text-[#666666]" />
+          <ChevronUp className="w-5 h-5 text-[#94A3B8]" />
         ) : (
-          <ChevronDown className="w-5 h-5 text-[#666666]" />
+          <ChevronDown className="w-5 h-5 text-[#94A3B8]" />
         )}
       </button>
     );
@@ -242,7 +242,7 @@ DOR: ${mockNote.resumoExecutivo.nivelDor}/10
       <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-slide-up-modal">
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#5A9BCF] to-[#4A8BBF] p-6 text-white">
+    <div className="bg-gradient-to-r from-[#4F46E5] via-[#6366F1] to-[#8B5CF6] p-6 text-white">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center space-x-3">
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
@@ -250,7 +250,7 @@ DOR: ${mockNote.resumoExecutivo.nivelDor}/10
               </div>
               <div>
                 <h2 className="text-2xl font-bold">Nota de Evolução</h2>
-                <p className="text-blue-100 text-sm">Resumo Inteligente da Sessão</p>
+                <p className="text-indigo-100 text-sm">Resumo Inteligente da Sessão</p>
               </div>
             </div>
             <button
@@ -264,23 +264,23 @@ DOR: ${mockNote.resumoExecutivo.nivelDor}/10
           {/* Session Info */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white/10 backdrop-blur-sm rounded-lg p-4">
             <div className="flex items-center space-x-2">
-              <User className="w-5 h-5 text-blue-200" />
+              <User className="w-5 h-5 text-indigo-200" />
               <div>
-                <div className="text-xs text-blue-200">Paciente</div>
+                <div className="text-xs text-indigo-200">Paciente</div>
                 <div className="font-semibold">{sessionData.patient_name}</div>
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Calendar className="w-5 h-5 text-blue-200" />
+              <Calendar className="w-5 h-5 text-indigo-200" />
               <div>
-                <div className="text-xs text-blue-200">Data</div>
+                <div className="text-xs text-indigo-200">Data</div>
                 <div className="font-semibold">{date}</div>
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Clock className="w-5 h-5 text-blue-200" />
+              <Clock className="w-5 h-5 text-indigo-200" />
               <div>
-                <div className="text-xs text-blue-200">Duração</div>
+                <div className="text-xs text-indigo-200">Duração</div>
                 <div className="font-semibold">{sessionData.duration_minutes} minutos</div>
               </div>
             </div>
@@ -292,15 +292,15 @@ DOR: ${mockNote.resumoExecutivo.nivelDor}/10
           
           {/* Resumo Executivo */}
           <div className="space-y-2">
-            <SectionHeader id="resumo" icon={Activity} title="Resumo Executivo" color="bg-[#5A9BCF]" />
+            <SectionHeader id="resumo" icon={Activity} title="Resumo Executivo" color="bg-gradient-to-br from-[#4F46E5] to-[#6366F1]" />
             {expandedSections.has('resumo') && (
               <div className="p-4 space-y-4 animate-fade-in">
-                <div className="bg-blue-50 border-l-4 border-[#5A9BCF] p-4 rounded-r-lg">
+                <div className="bg-[#EEF2FF] border-l-4 border-[#4F46E5] p-4 rounded-r-lg">
                   <div className="flex items-start space-x-3">
-                    <AlertCircle className="w-5 h-5 text-[#5A9BCF] flex-shrink-0 mt-0.5" />
+                    <AlertCircle className="w-5 h-5 text-[#4F46E5] flex-shrink-0 mt-0.5" />
                     <div>
-                      <div className="font-semibold text-[#333333] mb-1">Queixa Principal</div>
-                      <p className="text-[#666666]">{mockNote.resumoExecutivo.queixaPrincipal}</p>
+                      <div className="font-semibold text-[#111827] mb-1">Queixa Principal</div>
+                      <p className="text-[#64748B]">{mockNote.resumoExecutivo.queixaPrincipal}</p>
                     </div>
                   </div>
                 </div>
@@ -328,20 +328,20 @@ DOR: ${mockNote.resumoExecutivo.nivelDor}/10
             {expandedSections.has('anamnese') && (
               <div className="p-4 space-y-3 animate-fade-in">
                 <div>
-                  <h4 className="font-semibold text-[#333333] mb-2">Histórico Atual</h4>
-                  <p className="text-[#666666] leading-relaxed">{mockNote.anamnese.historicoAtual}</p>
+                  <h4 className="font-semibold text-[#111827] mb-2">Histórico Atual</h4>
+                  <p className="text-[#64748B] leading-relaxed">{mockNote.anamnese.historicoAtual}</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-[#333333] mb-2">Antecedentes Pessoais</h4>
-                  <p className="text-[#666666]">{mockNote.anamnese.antecedentesPessoais}</p>
+                  <h4 className="font-semibold text-[#111827] mb-2">Antecedentes Pessoais</h4>
+                  <p className="text-[#64748B]">{mockNote.anamnese.antecedentesPessoais}</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-[#333333] mb-2">Medicamentos em Uso</h4>
-                  <p className="text-[#666666]">{mockNote.anamnese.medicamentos}</p>
+                  <h4 className="font-semibold text-[#111827] mb-2">Medicamentos em Uso</h4>
+                  <p className="text-[#64748B]">{mockNote.anamnese.medicamentos}</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-[#333333] mb-2">Objetivos do Paciente</h4>
-                  <p className="text-[#666666]">{mockNote.anamnese.objetivos}</p>
+                  <h4 className="font-semibold text-[#111827] mb-2">Objetivos do Paciente</h4>
+                  <p className="text-[#64748B]">{mockNote.anamnese.objetivos}</p>
                 </div>
               </div>
             )}
@@ -353,23 +353,23 @@ DOR: ${mockNote.resumoExecutivo.nivelDor}/10
             {expandedSections.has('diagnostico') && (
               <div className="p-4 space-y-3 animate-fade-in">
                 <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-r-lg">
-                  <div className="font-semibold text-[#333333] mb-1">Diagnóstico Principal</div>
-                  <p className="text-[#666666] text-lg">{mockNote.diagnosticoFisioterapeutico.principal}</p>
+                  <div className="font-semibold text-[#111827] mb-1">Diagnóstico Principal</div>
+                  <p className="text-[#64748B] text-lg">{mockNote.diagnosticoFisioterapeutico.principal}</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-[#333333] mb-2">Diagnósticos Secundários</h4>
+                  <h4 className="font-semibold text-[#111827] mb-2">Diagnósticos Secundários</h4>
                   <ul className="space-y-2">
                     {mockNote.diagnosticoFisioterapeutico.secundario.map((diag, index) => (
                       <li key={index} className="flex items-start space-x-2">
                         <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></span>
-                        <span className="text-[#666666]">{diag}</span>
+                        <span className="text-[#64748B]">{diag}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <div className="text-sm font-medium text-[#666666]">CIF (Classificação Internacional de Funcionalidade)</div>
-                  <p className="text-[#333333] mt-1">{mockNote.diagnosticoFisioterapeutico.cif}</p>
+                <div className="bg-[#F8FAFC] p-3 rounded-lg">
+                  <div className="text-sm font-medium text-[#64748B]">CIF (Classificação Internacional de Funcionalidade)</div>
+                  <p className="text-[#111827] mt-1">{mockNote.diagnosticoFisioterapeutico.cif}</p>
                 </div>
               </div>
             )}
@@ -377,39 +377,39 @@ DOR: ${mockNote.resumoExecutivo.nivelDor}/10
 
           {/* Intervenções Realizadas */}
           <div className="space-y-2">
-            <SectionHeader id="intervencoes" icon={Activity} title="Intervenções Realizadas" color="bg-[#5A9BCF]" />
+            <SectionHeader id="intervencoes" icon={Activity} title="Intervenções Realizadas" color="bg-gradient-to-br from-[#4F46E5] to-[#6366F1]" />
             {expandedSections.has('intervencoes') && (
               <div className="p-4 space-y-4 animate-fade-in">
                 <div>
-                  <h4 className="font-semibold text-[#333333] mb-3 flex items-center space-x-2">
+                  <h4 className="font-semibold text-[#111827] mb-3 flex items-center space-x-2">
                     <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                     <span>Técnicas Manuais</span>
                   </h4>
                   <ul className="space-y-2 ml-4">
                     {mockNote.intervencoes.tecnicasManuais.map((tecnica, index) => (
-                      <li key={index} className="text-[#666666] leading-relaxed">• {tecnica}</li>
+                      <li key={index} className="text-[#64748B] leading-relaxed">• {tecnica}</li>
                     ))}
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-[#333333] mb-3 flex items-center space-x-2">
+                  <h4 className="font-semibold text-[#111827] mb-3 flex items-center space-x-2">
                     <span className="w-2 h-2 bg-green-500 rounded-full"></span>
                     <span>Exercícios Terapêuticos</span>
                   </h4>
                   <ul className="space-y-2 ml-4">
                     {mockNote.intervencoes.exerciciosTerapeuticos.map((exercicio, index) => (
-                      <li key={index} className="text-[#666666] leading-relaxed">• {exercicio}</li>
+                      <li key={index} className="text-[#64748B] leading-relaxed">• {exercicio}</li>
                     ))}
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-[#333333] mb-3 flex items-center space-x-2">
+                  <h4 className="font-semibold text-[#111827] mb-3 flex items-center space-x-2">
                     <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
                     <span>Recursos Eletrotermofototerapêuticos</span>
                   </h4>
                   <ul className="space-y-2 ml-4">
                     {mockNote.intervencoes.recursosEletrotermofototerapeticos.map((recurso, index) => (
-                      <li key={index} className="text-[#666666] leading-relaxed">• {recurso}</li>
+                      <li key={index} className="text-[#64748B] leading-relaxed">• {recurso}</li>
                     ))}
                   </ul>
                 </div>
@@ -424,15 +424,15 @@ DOR: ${mockNote.resumoExecutivo.nivelDor}/10
               <div className="p-4 space-y-3 animate-fade-in">
                 <div className="bg-green-50 p-4 rounded-lg">
                   <h4 className="font-semibold text-green-800 mb-2">Resposta Imediata</h4>
-                  <p className="text-[#666666]">{mockNote.respostaTratamento.imediata}</p>
+                  <p className="text-[#64748B]">{mockNote.respostaTratamento.imediata}</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-[#333333] mb-2">Efeitos Adversos</h4>
-                  <p className="text-[#666666]">{mockNote.respostaTratamento.efeitos}</p>
+                  <h4 className="font-semibold text-[#111827] mb-2">Efeitos Adversos</h4>
+                  <p className="text-[#64748B]">{mockNote.respostaTratamento.efeitos}</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-[#333333] mb-2">Feedback do Paciente</h4>
-                  <p className="text-[#666666]">{mockNote.respostaTratamento.feedback}</p>
+                  <h4 className="font-semibold text-[#111827] mb-2">Feedback do Paciente</h4>
+                  <p className="text-[#64748B]">{mockNote.respostaTratamento.feedback}</p>
                 </div>
               </div>
             )}
@@ -444,23 +444,23 @@ DOR: ${mockNote.resumoExecutivo.nivelDor}/10
             {expandedSections.has('orientacoes') && (
               <div className="p-4 space-y-4 animate-fade-in">
                 <div>
-                  <h4 className="font-semibold text-[#333333] mb-3">Exercícios Domiciliares</h4>
+                  <h4 className="font-semibold text-[#111827] mb-3">Exercícios Domiciliares</h4>
                   <ul className="space-y-2">
                     {mockNote.orientacoes.domiciliares.map((orientacao, index) => (
                       <li key={index} className="flex items-start space-x-2">
                         <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                        <span className="text-[#666666]">{orientacao}</span>
+                        <span className="text-[#64748B]">{orientacao}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-[#333333] mb-3">Orientações Ergonômicas</h4>
+                  <h4 className="font-semibold text-[#111827] mb-3">Orientações Ergonômicas</h4>
                   <ul className="space-y-2">
                     {mockNote.orientacoes.ergonomicas.map((orientacao, index) => (
                       <li key={index} className="flex items-start space-x-2">
                         <Check className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                        <span className="text-[#666666]">{orientacao}</span>
+                        <span className="text-[#64748B]">{orientacao}</span>
                       </li>
                     ))}
                   </ul>
@@ -472,7 +472,7 @@ DOR: ${mockNote.resumoExecutivo.nivelDor}/10
                   </h4>
                   <ul className="space-y-2">
                     {mockNote.orientacoes.precaucoes.map((precaucao, index) => (
-                      <li key={index} className="text-[#666666]">• {precaucao}</li>
+                      <li key={index} className="text-[#64748B]">• {precaucao}</li>
                     ))}
                   </ul>
                 </div>
@@ -488,49 +488,49 @@ DOR: ${mockNote.resumoExecutivo.nivelDor}/10
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-teal-50 p-4 rounded-lg">
                     <div className="text-sm text-teal-600 font-medium mb-1">Frequência</div>
-                    <p className="text-[#333333]">{mockNote.planoTratamento.frequencia}</p>
+                    <p className="text-[#111827]">{mockNote.planoTratamento.frequencia}</p>
                   </div>
                   <div className="bg-teal-50 p-4 rounded-lg">
                     <div className="text-sm text-teal-600 font-medium mb-1">Duração Prevista</div>
-                    <p className="text-[#333333]">{mockNote.planoTratamento.duracaoPrevista}</p>
+                    <p className="text-[#111827]">{mockNote.planoTratamento.duracaoPrevista}</p>
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="font-semibold text-[#333333] mb-3">Objetivos de Curto Prazo (2-3 semanas)</h4>
+                  <h4 className="font-semibold text-[#111827] mb-3">Objetivos de Curto Prazo (2-3 semanas)</h4>
                   <ul className="space-y-2">
                     {mockNote.planoTratamento.objetivosCurtoPrazo.map((objetivo, index) => (
                       <li key={index} className="flex items-start space-x-2">
                         <span className="w-6 h-6 bg-teal-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                           {index + 1}
                         </span>
-                        <span className="text-[#666666] mt-0.5">{objetivo}</span>
+                        <span className="text-[#64748B] mt-0.5">{objetivo}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
                 <div>
-                  <h4 className="font-semibold text-[#333333] mb-3">Objetivos de Longo Prazo (6-12 semanas)</h4>
+                  <h4 className="font-semibold text-[#111827] mb-3">Objetivos de Longo Prazo (6-12 semanas)</h4>
                   <ul className="space-y-2">
                     {mockNote.planoTratamento.objetivosLongoPrazo.map((objetivo, index) => (
                       <li key={index} className="flex items-start space-x-2">
                         <span className="w-6 h-6 bg-teal-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                           {index + 1}
                         </span>
-                        <span className="text-[#666666] mt-0.5">{objetivo}</span>
+                        <span className="text-[#64748B] mt-0.5">{objetivo}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-semibold text-[#333333] mb-3">Critérios de Alta</h4>
+                <div className="bg-[#F8FAFC] p-4 rounded-lg">
+                  <h4 className="font-semibold text-[#111827] mb-3">Critérios de Alta</h4>
                   <ul className="space-y-2">
                     {mockNote.planoTratamento.criteriosAlta.map((criterio, index) => (
                       <li key={index} className="flex items-start space-x-2">
                         <Check className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
-                        <span className="text-[#666666]">{criterio}</span>
+                        <span className="text-[#64748B]">{criterio}</span>
                       </li>
                     ))}
                   </ul>
@@ -540,36 +540,36 @@ DOR: ${mockNote.resumoExecutivo.nivelDor}/10
           </div>
 
           {/* Observações Adicionais */}
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h4 className="font-semibold text-[#333333] mb-2 flex items-center space-x-2">
-              <FileText className="w-5 h-5 text-[#5A9BCF]" />
+          <div className="bg-[#EEF2FF] p-4 rounded-lg border border-[#C7D2FE]">
+            <h4 className="font-semibold text-[#111827] mb-2 flex items-center space-x-2">
+              <FileText className="w-5 h-5 text-[#4F46E5]" />
               <span>Observações Adicionais</span>
             </h4>
-            <p className="text-[#666666] leading-relaxed">{mockNote.observacoesAdicionais}</p>
+            <p className="text-[#64748B] leading-relaxed">{mockNote.observacoesAdicionais}</p>
           </div>
 
           {/* Próxima Sessão */}
-          <div className="bg-gradient-to-r from-[#5A9BCF]/10 to-[#4A8BBF]/10 p-4 rounded-lg border-2 border-[#5A9BCF]/20">
-            <h4 className="font-semibold text-[#333333] mb-2 flex items-center space-x-2">
-              <Calendar className="w-5 h-5 text-[#5A9BCF]" />
+          <div className="bg-gradient-to-r from-[#4F46E5]/10 via-[#6366F1]/10 to-[#8B5CF6]/10 p-4 rounded-lg border-2 border-[#6366F1]/20">
+            <h4 className="font-semibold text-[#111827] mb-2 flex items-center space-x-2">
+              <Calendar className="w-5 h-5 text-[#4F46E5]" />
               <span>Próxima Sessão</span>
             </h4>
             <div className="space-y-1">
-              <p className="text-[#666666]"><strong>Retorno em:</strong> {mockNote.proximaSessao.data}</p>
-              <p className="text-[#666666]"><strong>Foco:</strong> {mockNote.proximaSessao.foco}</p>
+              <p className="text-[#64748B]"><strong className="text-[#4F46E5] font-semibold">Retorno em:</strong> {mockNote.proximaSessao.data}</p>
+              <p className="text-[#64748B]"><strong className="text-[#4F46E5] font-semibold">Foco:</strong> {mockNote.proximaSessao.foco}</p>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 p-4 bg-gray-50 flex justify-between items-center">
-          <div className="text-sm text-[#666666]">
-            <span className="font-medium">ID da Sessão:</span> {sessionData.id}
+        <div className="border-t border-[#E2E8F0] p-4 bg-[#F8FAFC] flex justify-between items-center">
+          <div className="text-sm text-[#64748B]">
+            <span className="font-medium text-[#111827]">ID da Sessão:</span> {sessionData.id}
           </div>
           <div className="flex space-x-3">
             <button
               onClick={handleCopyNote}
-              className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-[#666666] rounded-lg hover:bg-gray-100 transition-colors"
+              className="flex items-center space-x-2 px-4 py-2 border border-[#CBD5E1] text-[#64748B] rounded-lg hover:bg-[#E2E8F0]/60 transition-colors"
             >
               {copied ? (
                 <>
@@ -583,7 +583,7 @@ DOR: ${mockNote.resumoExecutivo.nivelDor}/10
                 </>
               )}
             </button>
-            <button className="flex items-center space-x-2 px-4 py-2 bg-[#5A9BCF] text-white rounded-lg hover:bg-[#4A8BBF] transition-colors">
+            <button className="flex items-center space-x-2 px-4 py-2 bg-[#4F46E5] text-white rounded-lg hover:bg-[#6366F1] transition-colors shadow-sm">
               <Download className="w-4 h-4" />
               <span>Exportar PDF</span>
             </button>
@@ -601,7 +601,7 @@ DOR: ${mockNote.resumoExecutivo.nivelDor}/10
             
             <button
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 text-[#666666] rounded-lg hover:bg-gray-100 transition-colors"
+              className="btn-cancel rounded-lg px-4 py-2"
             >
               {showSaveButton ? 'Descartar' : 'Fechar'}
             </button>

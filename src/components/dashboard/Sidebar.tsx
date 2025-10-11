@@ -34,15 +34,15 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-white shadow-lg z-50 flex flex-col">
-      <div className="p-6 border-b border-gray-100">
+    <aside className="fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-[#4F46E5] to-[#6366F1] shadow-xl z-50 flex flex-col">
+      <div className="p-6 border-b border-white/20">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-[#5A9BCF] rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center border border-white/30 shadow-lg">
             <Activity className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-[#333333]">PhysioNote.AI</h1>
-            <p className="text-xs text-[#666666]">Documentação Inteligente</p>
+            <h1 className="text-xl font-bold text-white">PhysioNote.AI</h1>
+            <p className="text-xs text-white/80">Documentação Inteligente</p>
           </div>
         </div>
       </div>
@@ -53,25 +53,33 @@ const Sidebar = () => {
             <button
               key={item.path}
               onClick={() => router.push(item.path)}
-              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${item.active ? 'bg-[#5A9BCF]/10 text-[#5A9BCF]' : 'text-[#666666] hover:bg-gray-50 hover:text-[#5A9BCF]'}`}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-300 ${
+                item.active 
+                  ? 'bg-white/10 text-white shadow-lg backdrop-blur-md border border-white/20 transform scale-[1.02]' 
+                  : 'text-white/80 hover:bg-white/5 hover:text-white hover:backdrop-blur-sm'
+              }`}
             >
-              <Icon className="w-5 h-5" />
+              <Icon className={`w-5 h-5 ${item.active ? 'drop-shadow-lg' : ''}`} />
               <span className="font-medium">{item.name}</span>
             </button>
           );
         })}
       </nav>
-      <div className="p-4 border-t border-gray-100 space-y-2">
+      <div className="p-4 border-t border-white/20 space-y-2">
         <button
           onClick={() => router.push('/dashboard/help')}
-          className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${pathname === '/dashboard/help' ? 'bg-[#5A9BCF]/10 text-[#5A9BCF]' : 'text-[#666666] hover:bg-gray-50 hover:text-[#5A9BCF]'}`}
+          className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-300 ${
+            pathname === '/dashboard/help' 
+              ? 'bg-white/10 text-white shadow-lg backdrop-blur-md border border-white/20 transform scale-[1.02]' 
+              : 'text-white/80 hover:bg-white/5 hover:text-white hover:backdrop-blur-sm'
+          }`}
         >
-          <HelpCircle className="w-5 h-5" />
+          <HelpCircle className={`w-5 h-5 ${pathname === '/dashboard/help' ? 'drop-shadow-lg' : ''}`} />
           <span className="font-medium">Ajuda</span>
         </button>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+          className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-white/80 hover:bg-[#EF4444]/30 hover:text-white hover:backdrop-blur-sm transition-all duration-300"
         >
           <LogOut className="w-5 h-5" />
           <span className="font-medium">Sair</span>

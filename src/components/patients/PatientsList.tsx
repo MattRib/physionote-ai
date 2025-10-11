@@ -1,7 +1,15 @@
 'use client';
 
 import React from 'react';
-import { Edit, Trash2, FileText } from 'lucide-react';
+import {
+  Edit,
+  Trash2,
+  FileText,
+  Phone,
+  Mail,
+  CalendarCheck,
+  ClipboardList
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Patient } from './PatientsView';
 
@@ -23,115 +31,103 @@ const PatientsList: React.FC<PatientsListProps> = ({ patients, onEdit, onDelete 
     return date.toLocaleDateString('pt-BR');
   };
 
-  const calculateAge = (birthDate: string) => {
-    const today = new Date();
-    const birth = new Date(birthDate);
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
+  const renderBadge = (classes: string, icon: React.ReactNode, label: string) => (
+    <div className={`flex items-center gap-2 rounded-full px-3 py-1 ${classes}`}>
+      {icon}
+      <span className="text-sm font-medium">{label}</span>
+    </div>
+  );
+
+  const getInitials = (name: string) => {
+    if (!name) return 'PT';
+    const parts = name.trim().split(' ');
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase();
     }
-    return age;
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
   };
 
   if (patients.length === 0) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <span className="text-3xl">👥</span>
+      <div className="rounded-[28px] border border-dashed border-[#C7D2FE] bg-white/70 px-10 py-16 text-center shadow-[0_22px_60px_-40px_rgba(79,70,229,0.45)]">
+        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#A5B4FC] to-[#818CF8] text-3xl text-white shadow-[0_18px_40px_-24px_rgba(79,70,229,0.55)]">
+          👥
         </div>
-        <h3 className="text-lg font-semibold text-[#333333] mb-2">
-          Nenhum paciente encontrado
-        </h3>
-        <p className="text-[#666666]">
-          Clique em &quot;Novo Paciente&quot; para adicionar seu primeiro paciente.
+        <h3 className="text-xl font-semibold text-[#111827]">Nenhum paciente encontrado</h3>
+        <p className="mt-2 text-sm text-[#6B7280]">
+          Clique em “Novo Paciente” e cadastre seu primeiro contato.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#666666] uppercase tracking-wider">
-                Nome
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#666666] uppercase tracking-wider">
-                Contato
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#666666] uppercase tracking-wider">
-                Idade
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#666666] uppercase tracking-wider">
-                Sessões
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-semibold text-[#666666] uppercase tracking-wider">
-                Última Sessão
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-semibold text-[#666666] uppercase tracking-wider">
-                Ações
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {patients.map((patient) => (
-              <tr key={patient.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div>
-                    <div className="font-medium text-[#333333]">{patient.name}</div>
-                    <div className="text-sm text-[#666666]">{patient.cpf}</div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-[#666666]">
-                    <div>{patient.email}</div>
-                    <div>{patient.phone}</div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#666666]">
-                  {calculateAge(patient.birthDate)} anos
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-[#5A9BCF]/10 text-[#5A9BCF]">
-                    {patient.totalSessions}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#666666]">
-                  {patient.lastSession ? formatDate(patient.lastSession) : '-'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <div className="flex justify-end space-x-2">
-                    <button
-                      onClick={() => handleViewRecord(patient.id)}
-                      className="p-2 text-[#5A9BCF] hover:bg-[#5A9BCF]/10 rounded-lg transition-all duration-200 hover:scale-110"
-                      title="Prontuário"
-                    >
-                      <FileText className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => onEdit(patient)}
-                      className="p-2 text-[#666666] hover:bg-gray-100 rounded-lg transition-colors"
-                      title="Editar"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => onDelete(patient.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Excluir"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="space-y-4">
+      {patients.map((patient) => (
+        <div
+          key={patient.id}
+          className="flex flex-col gap-4 rounded-[28px] border border-white/70 bg-white/95 px-6 py-5 shadow-[0_22px_60px_-42px_rgba(15,23,42,0.45)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_32px_70px_-48px_rgba(79,70,229,0.45)] md:flex-row md:items-center md:justify-between"
+        >
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 rounded-full bg-gradient-to-br from-[#FDE68A] via-[#FBCFE8] to-[#A5B4FC] p-[2px] shadow-[0_16px_38px_-26px_rgba(244,114,182,0.55)]">
+              <div className="flex h-full w-full items-center justify-center rounded-full bg-white text-sm font-semibold text-[#1E293B]">
+                {getInitials(patient.name)}
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-[#0F172A]">{patient.name}</h3>
+              <p className="text-sm text-[#64748B]">{patient.cpf || 'CPF não informado'}</p>
+            </div>
+          </div>
+
+          <div className="flex flex-1 flex-wrap items-center gap-3 md:justify-end">
+            {renderBadge(
+              'bg-[#FEF3C7] text-[#B45309]',
+              <Phone className="h-4 w-4" />,
+              patient.phone || 'Sem telefone'
+            )}
+            {renderBadge(
+              'bg-[#FCE7F3] text-[#BE185D]',
+              <Mail className="h-4 w-4" />,
+              patient.email || 'Sem e-mail'
+            )}
+            {renderBadge(
+              'bg-[#DBEAFE] text-[#1E3A8A]',
+              <ClipboardList className="h-4 w-4" />,
+              patient.totalSessions ? `${patient.totalSessions} sessões` : 'Sem sessões'
+            )}
+            {renderBadge(
+              patient.lastSession ? 'bg-[#D1FAE5] text-[#047857]' : 'bg-[#E2E8F0] text-[#475569]',
+              <CalendarCheck className="h-4 w-4" />,
+              patient.lastSession ? `Última: ${formatDate(patient.lastSession)}` : 'Sem sessões recentes'
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 md:ml-4">
+            <button
+              onClick={() => handleViewRecord(patient.id)}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EEF2FF] text-[#4F46E5] transition-transform duration-200 hover:-translate-y-0.5 hover:bg-[#E0E7FF]"
+              title="Prontuário"
+            >
+              <FileText className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => onEdit(patient)}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F8FAFC] text-[#0F172A] transition-transform duration-200 hover:-translate-y-0.5 hover:bg-white"
+              title="Editar"
+            >
+              <Edit className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => onDelete(patient.id)}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FEF2F2] text-[#DC2626] transition-transform duration-200 hover:-translate-y-0.5 hover:bg-[#FEE2E2]"
+              title="Excluir"
+            >
+              <Trash2 className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 };

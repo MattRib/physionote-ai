@@ -10,18 +10,18 @@ const config: Config = {
     extend: {
       colors: {
         primary: {
-          blue: '#5A9BCF',
-          green: '#A8D5BA', // Mantido para compatibilidade, mas não usado em hover
+          blue: '#4F46E5',
+          green: '#22C55E', // Mantido para compatibilidade, mas não usado em hover
         },
         neutral: {
           white: '#FFFFFF',
-          light: '#F7F7F7',
-          medium: '#B0B0B0',
-          dark: '#333333',
+          light: '#F9FAFB',
+          medium: '#6B7280',
+          dark: '#111827',
         },
         blue: {
-          700: '#2C5F8D', // Azul escuro para hover
-          800: '#1E4A6F', // Azul mais escuro alternativo
+          700: '#4338CA', // Roxo-azul para hover
+          800: '#312E81', // Roxo-azul mais profundo
         }
       },
       animation: {

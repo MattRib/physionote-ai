@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, User, Mail, Phone, Calendar, MapPin, FileText } from 'lucide-react';
+import { X, User, Mail, Phone, Calendar, MapPin, FileText, AlertTriangle } from 'lucide-react';
 import { Patient } from './PatientsView';
 
 interface PatientModalProps {
@@ -11,6 +11,9 @@ interface PatientModalProps {
 }
 
 const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave }) => {
+  // Classe comum para todos os inputs com texto legível e nova cor primária
+  const inputClassName = "w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent transition-all text-[#111827] placeholder:text-gray-500";
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -33,24 +36,64 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
 
   useEffect(() => {
     if (patient) {
+      console.log('Preenchendo modal com dados do paciente:', patient);
+      
+      // Converter birthDate do formato ISO para YYYY-MM-DD se necessário
+      let formattedBirthDate = '';
+      if (patient.birthDate) {
+        const date = new Date(patient.birthDate);
+        if (!isNaN(date.getTime())) {
+          formattedBirthDate = date.toISOString().split('T')[0];
+        }
+      }
+      
       setFormData({
-        name: patient.name,
-        email: patient.email,
-        phone: patient.phone,
-        cpf: patient.cpf,
-        birthDate: patient.birthDate,
-        gender: patient.gender,
-        address: {
-          street: patient.address.street,
-          number: patient.address.number,
+        name: patient.name || '',
+        email: patient.email || '',
+        phone: patient.phone || '',
+        cpf: patient.cpf || '', // Não existe no backend, será resetado
+        birthDate: formattedBirthDate,
+        gender: (patient.gender as 'masculino' | 'feminino' | 'outro') || 'feminino',
+        address: patient.address ? {
+          street: patient.address.street || '',
+          number: patient.address.number || '',
           complement: patient.address.complement || '',
-          neighborhood: patient.address.neighborhood,
-          city: patient.address.city,
-          state: patient.address.state,
-          zipCode: patient.address.zipCode
+          neighborhood: patient.address.neighborhood || '',
+          city: patient.address.city || '',
+          state: patient.address.state || '',
+          zipCode: patient.address.zipCode || ''
+        } : {
+          street: '',
+          number: '',
+          complement: '',
+          neighborhood: '',
+          city: '',
+          state: '',
+          zipCode: ''
         },
-        medicalHistory: patient.medicalHistory || '',
+        medicalHistory: patient.medicalHistory || '', // Não existe no backend, será resetado
         lastSession: patient.lastSession || ''
+      });
+    } else {
+      // Reset form when patient is null (creating new patient)
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        cpf: '',
+        birthDate: '',
+        gender: 'feminino',
+        address: {
+          street: '',
+          number: '',
+          complement: '',
+          neighborhood: '',
+          city: '',
+          state: '',
+          zipCode: ''
+        },
+        medicalHistory: '',
+        lastSession: ''
       });
     }
   }, [patient]);
@@ -108,28 +151,39 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full my-8">
         {/* Modal Header */}
         <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-lg">
-          <h2 className="text-2xl font-bold text-[#333333]">
+          <h2 className="text-2xl font-bold text-[#111827]">
             {patient ? 'Editar Paciente' : 'Novo Paciente'}
           </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <X className="w-6 h-6 text-[#666666]" />
+            <X className="w-6 h-6 text-[#6B7280]" />
           </button>
         </div>
 
         {/* Modal Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6 max-h-[calc(90vh-180px)] overflow-y-auto">
+          {/* Aviso sobre campos não persistidos */}
+          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-start">
+              <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-yellow-800">
+                <strong>Aviso:</strong> Os campos CPF, Endereço e Histórico Médico ainda não são salvos no banco de dados. 
+                Apenas Nome, Email, Telefone, Data de Nascimento e Gênero são persistidos atualmente.
+              </div>
+            </div>
+          </div>
+
           {/* Informações Pessoais */}
           <div>
-            <h3 className="text-lg font-semibold text-[#333333] mb-4 flex items-center">
-              <User className="w-5 h-5 mr-2 text-[#5A9BCF]" />
+            <h3 className="text-lg font-semibold text-[#111827] mb-4 flex items-center">
+              <User className="w-5 h-5 mr-2 text-[#4F46E5]" />
               Informações Pessoais
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-[#666666] mb-2">
+                <label className="block text-sm font-medium text-[#6B7280] mb-2">
                   Nome Completo *
                 </label>
                 <input
@@ -138,13 +192,13 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9BCF] focus:border-transparent transition-all"
+                  className={inputClassName}
                   placeholder="Digite o nome completo"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#666666] mb-2">
+                <label className="block text-sm font-medium text-[#6B7280] mb-2">
                   CPF *
                 </label>
                 <input
@@ -157,13 +211,13 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                   }}
                   required
                   maxLength={14}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9BCF] focus:border-transparent transition-all"
+                  className={inputClassName}
                   placeholder="000.000.000-00"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#666666] mb-2">
+                <label className="block text-sm font-medium text-[#6B7280] mb-2">
                   Data de Nascimento *
                 </label>
                 <input
@@ -172,12 +226,12 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                   value={formData.birthDate}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9BCF] focus:border-transparent transition-all"
+                  className={inputClassName}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#666666] mb-2">
+                <label className="block text-sm font-medium text-[#6B7280] mb-2">
                   Gênero *
                 </label>
                 <select
@@ -185,7 +239,7 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                   value={formData.gender}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9BCF] focus:border-transparent transition-all"
+                  className={inputClassName}
                 >
                   <option value="feminino">Feminino</option>
                   <option value="masculino">Masculino</option>
@@ -197,13 +251,13 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
 
           {/* Contato */}
           <div>
-            <h3 className="text-lg font-semibold text-[#333333] mb-4 flex items-center">
-              <Phone className="w-5 h-5 mr-2 text-[#5A9BCF]" />
+            <h3 className="text-lg font-semibold text-[#111827] mb-4 flex items-center">
+              <Phone className="w-5 h-5 mr-2 text-[#4F46E5]" />
               Contato
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[#666666] mb-2">
+                <label className="block text-sm font-medium text-[#6B7280] mb-2">
                   Email *
                 </label>
                 <input
@@ -212,13 +266,13 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                   value={formData.email}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9BCF] focus:border-transparent transition-all"
+                  className={inputClassName}
                   placeholder="email@exemplo.com"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-[#666666] mb-2">
+                <label className="block text-sm font-medium text-[#6B7280] mb-2">
                   Telefone *
                 </label>
                 <input
@@ -231,7 +285,7 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                   }}
                   required
                   maxLength={15}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9BCF] focus:border-transparent transition-all"
+                  className={inputClassName}
                   placeholder="(00) 00000-0000"
                 />
               </div>
@@ -240,13 +294,13 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
 
           {/* Endereço */}
           <div>
-            <h3 className="text-lg font-semibold text-[#333333] mb-4 flex items-center">
-              <MapPin className="w-5 h-5 mr-2 text-[#5A9BCF]" />
+            <h3 className="text-lg font-semibold text-[#111827] mb-4 flex items-center">
+              <MapPin className="w-5 h-5 mr-2 text-[#4F46E5]" />
               Endereço
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="lg:col-span-1">
-                <label className="block text-sm font-medium text-[#666666] mb-2">
+                <label className="block text-sm font-medium text-[#6B7280] mb-2">
                   CEP
                 </label>
                 <input
@@ -261,13 +315,13 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                     });
                   }}
                   maxLength={9}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9BCF] focus:border-transparent transition-all"
+                  className={inputClassName}
                   placeholder="00000-000"
                 />
               </div>
 
               <div className="lg:col-span-2">
-                <label className="block text-sm font-medium text-[#666666] mb-2">
+                <label className="block text-sm font-medium text-[#6B7280] mb-2">
                   Rua
                 </label>
                 <input
@@ -275,13 +329,13 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                   name="address.street"
                   value={formData.address.street}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9BCF] focus:border-transparent transition-all"
+                  className={inputClassName}
                   placeholder="Nome da rua"
                 />
               </div>
 
               <div className="lg:col-span-1">
-                <label className="block text-sm font-medium text-[#666666] mb-2">
+                <label className="block text-sm font-medium text-[#6B7280] mb-2">
                   Número
                 </label>
                 <input
@@ -289,13 +343,13 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                   name="address.number"
                   value={formData.address.number}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9BCF] focus:border-transparent transition-all"
+                  className={inputClassName}
                   placeholder="N°"
                 />
               </div>
 
               <div className="lg:col-span-2">
-                <label className="block text-sm font-medium text-[#666666] mb-2">
+                <label className="block text-sm font-medium text-[#6B7280] mb-2">
                   Complemento
                 </label>
                 <input
@@ -303,13 +357,13 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                   name="address.complement"
                   value={formData.address.complement}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9BCF] focus:border-transparent transition-all"
+                  className={inputClassName}
                   placeholder="Apto, bloco, etc"
                 />
               </div>
 
               <div className="lg:col-span-2">
-                <label className="block text-sm font-medium text-[#666666] mb-2">
+                <label className="block text-sm font-medium text-[#6B7280] mb-2">
                   Bairro
                 </label>
                 <input
@@ -317,13 +371,13 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                   name="address.neighborhood"
                   value={formData.address.neighborhood}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9BCF] focus:border-transparent transition-all"
+                  className={inputClassName}
                   placeholder="Nome do bairro"
                 />
               </div>
 
               <div className="lg:col-span-3">
-                <label className="block text-sm font-medium text-[#666666] mb-2">
+                <label className="block text-sm font-medium text-[#6B7280] mb-2">
                   Cidade
                 </label>
                 <input
@@ -331,13 +385,13 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                   name="address.city"
                   value={formData.address.city}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9BCF] focus:border-transparent transition-all"
+                  className={inputClassName}
                   placeholder="Nome da cidade"
                 />
               </div>
 
               <div className="lg:col-span-1">
-                <label className="block text-sm font-medium text-[#666666] mb-2">
+                <label className="block text-sm font-medium text-[#6B7280] mb-2">
                   Estado
                 </label>
                 <input
@@ -346,7 +400,7 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                   value={formData.address.state}
                   onChange={handleChange}
                   maxLength={2}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9BCF] focus:border-transparent transition-all uppercase"
+                  className={`${inputClassName} uppercase`}
                   placeholder="UF"
                 />
               </div>
@@ -355,8 +409,8 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
 
           {/* Histórico Médico */}
           <div>
-            <h3 className="text-lg font-semibold text-[#333333] mb-4 flex items-center">
-              <FileText className="w-5 h-5 mr-2 text-[#5A9BCF]" />
+            <h3 className="text-lg font-semibold text-[#111827] mb-4 flex items-center">
+              <FileText className="w-5 h-5 mr-2 text-[#4F46E5]" />
               Histórico Médico
             </h3>
             <textarea
@@ -364,7 +418,7 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
               value={formData.medicalHistory}
               onChange={handleChange}
               rows={4}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9BCF] focus:border-transparent transition-all resize-none"
+              className={`${inputClassName} resize-none`}
               placeholder="Descreva o histórico médico relevante do paciente..."
             />
           </div>
@@ -376,14 +430,14 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-3 border border-gray-200 text-[#666666] rounded-lg hover:bg-white transition-colors font-medium"
+            className="btn-cancel rounded-lg px-6 py-3"
           >
             Cancelar
           </button>
           <button
             type="submit"
             onClick={handleSubmit}
-            className="px-6 py-3 bg-[#5A9BCF] text-white rounded-lg hover:bg-[#4A8BBF] transition-colors font-medium shadow-sm"
+            className="px-6 py-3 bg-[#4F46E5] text-white rounded-lg hover:bg-[#6366F1] transition-colors font-medium shadow-sm"
           >
             {patient ? 'Salvar Alterações' : 'Cadastrar Paciente'}
           </button>

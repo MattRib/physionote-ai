@@ -1,7 +1,18 @@
 'use client';
 
 import React from 'react';
-import { Calendar, User, Clock, FileText, Download, ShieldCheck, AlertCircle, Loader, ChevronRight } from 'lucide-react';
+import {
+  User,
+  FileText,
+  Download,
+  AlertCircle,
+  Loader,
+  ChevronRight,
+  Activity,
+  PiggyBank,
+  Calendar,
+  ShieldCheck
+} from 'lucide-react';
 
 interface Session {
   id: string;
@@ -53,9 +64,9 @@ const SessionListView: React.FC<SessionListViewProps> = ({ sessions }) => {
   if (sessions.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-4">
-        <div className="w-24 h-24 bg-[#5A9BCF]/10 rounded-full flex items-center justify-center mb-6">
+        <div className="w-24 h-24 bg-[#4F46E5]/10 rounded-full flex items-center justify-center mb-6">
           <svg 
-            className="w-12 h-12 text-[#5A9BCF]" 
+            className="w-12 h-12 text-[#6366F1]" 
             fill="none" 
             viewBox="0 0 24 24" 
             stroke="currentColor"
@@ -68,18 +79,27 @@ const SessionListView: React.FC<SessionListViewProps> = ({ sessions }) => {
             />
           </svg>
         </div>
-        <h3 className="text-xl font-bold text-[#333333] mb-2">
+        <h3 className="text-xl font-bold text-[#111827] mb-2">
           Nenhuma Sessão Encontrada
         </h3>
-        <p className="text-[#666666] text-center max-w-md">
+        <p className="text-[#6B7280] text-center max-w-md">
           Nenhuma sessão corresponde aos filtros aplicados.
         </p>
       </div>
     );
   }
 
+  const getInitials = (name: string) => {
+    if (!name) return 'PT';
+    const parts = name.trim().split(' ');
+    if (parts.length === 1) {
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  };
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       {sessions.map((session, index) => {
         const { date, time } = formatDateTime(session.session_datetime);
         const config = statusConfig[session.status];
@@ -88,79 +108,71 @@ const SessionListView: React.FC<SessionListViewProps> = ({ sessions }) => {
         return (
           <div
             key={session.id}
-            className="bg-white rounded-lg border-2 border-gray-100 
-                     hover:border-[#5A9BCF] hover:shadow-md
-                     transition-all duration-200
-                     group cursor-pointer
-                     animate-fade-in"
-            style={{ animationDelay: `${index * 30}ms` }}
+            className="group flex items-center justify-between gap-6 rounded-[28px] border border-white/70 bg-white/95 px-6 py-4 shadow-[0_20px_45px_-32px_rgba(15,23,42,0.45)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_28px_60px_-36px_rgba(79,70,229,0.45)]"
+            style={{ animationDelay: `${index * 40}ms` }}
           >
-            <div className="px-6 py-4 flex items-center justify-between gap-4">
-              
-              {/* Left Section - Date/Time */}
-              <div className="flex items-center space-x-4 min-w-[140px]">
-                <div className="text-center">
-                  <div className="text-sm font-bold text-[#333333]">{date}</div>
-                  <div className="text-xs text-[#666666]">{time}</div>
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 rounded-full bg-gradient-to-br from-[#FDE68A] via-[#F9A8D4] to-[#818CF8] p-[2px] shadow-[0_12px_24px_-16px_rgba(79,70,229,0.4)]">
+                <div className="flex h-full w-full items-center justify-center rounded-full bg-white text-sm font-semibold text-[#1E293B]">
+                  {getInitials(session.patient_name)}
                 </div>
               </div>
-
-              {/* Middle Section - Patient Info */}
-              <div className="flex-1 flex items-center space-x-3 min-w-0">
-                <User className="w-5 h-5 text-[#5A9BCF] flex-shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold text-[#333333] group-hover:text-[#5A9BCF] 
-                               transition-colors truncate">
-                    {session.patient_name}
-                  </h3>
-                  {session.duration_minutes && (
-                    <div className="flex items-center space-x-1 text-xs text-[#666666]">
-                      <Clock className="w-3 h-3" />
-                      <span>{session.duration_minutes} min</span>
-                    </div>
-                  )}
+              <div>
+                <div className="text-base font-semibold text-[#0F172A]">
+                  {session.patient_name}
                 </div>
+                <div className="text-sm text-[#64748B]">Sessão #{session.id}</div>
+              </div>
+            </div>
+
+            <div className="hidden flex-col items-start text-sm text-[#475569] sm:flex">
+              <span className="font-semibold text-[#0F172A]">{date}</span>
+              <span>{time}</span>
+            </div>
+
+            <div className="hidden items-center gap-3 text-sm text-[#475569] md:flex">
+              <div className="flex items-center gap-2 rounded-full bg-[#FEF3C7] px-3 py-1 text-[#CA8A04]">
+                <User className="h-4 w-4" />
+                <span>{session.duration_minutes ? `${session.duration_minutes} min` : 'Paciente'}</span>
+              </div>
+              <div className="flex items-center gap-2 rounded-full bg-[#FEE2E2] px-3 py-1 text-[#DC2626]">
+                <Activity className="h-4 w-4" />
+                <span>{session.is_anonymized ? 'LGPD ativa' : 'Sem LGPD'}</span>
+              </div>
+              <div className="flex items-center gap-2 rounded-full bg-[#DBEAFE] px-3 py-1 text-[#1D4ED8]">
+                <PiggyBank className="h-4 w-4" />
+                <span>Valor em aberto</span>
+              </div>
+              <div className="flex items-center gap-2 rounded-full bg-[#D1FAE5] px-3 py-1 text-[#047857]">
+                <Calendar className="h-4 w-4" />
+                <span>Próximo retorno</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ${config.bgColor}`}>
+                <StatusIcon
+                  className={`h-4 w-4 ${config.textColor} ${session.status === 'processing' ? 'animate-spin' : ''}`}
+                />
+                <span className={`${config.textColor}`}>{config.label}</span>
               </div>
 
-              {/* Status Badge */}
-              <div className="flex items-center space-x-2">
-                <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-full ${config.bgColor}`}>
-                  <StatusIcon className={`w-4 h-4 ${config.textColor} ${session.status === 'processing' ? 'animate-spin' : ''}`} />
-                  <span className={`text-sm font-medium ${config.textColor} hidden lg:inline`}>
-                    {config.label}
-                  </span>
-                </div>
-              </div>
-
-              {/* LGPD Badge */}
-              {session.is_anonymized && (
-                <div className="hidden md:flex" title="LGPD Compliant">
-                  <ShieldCheck className="w-5 h-5 text-green-600" />
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex items-center space-x-2">
+              <div className="ml-2 flex items-center gap-2">
                 <button
                   disabled={session.status !== 'completed'}
-                  className="p-2 rounded-lg text-[#5A9BCF] hover:bg-[#5A9BCF]/10
-                           disabled:text-gray-400 disabled:cursor-not-allowed
-                           transition-all duration-200 group/btn"
-                  title="Ver Nota"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EEF2FF] text-[#4F46E5] transition-transform duration-200 hover:-translate-y-0.5 hover:bg-[#E0E7FF] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                  title="Ver nota"
                 >
-                  <FileText className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
+                  <FileText className="h-5 w-5" />
                 </button>
                 <button
                   disabled={session.status !== 'completed'}
-                  className="p-2 rounded-lg text-[#5A9BCF] hover:bg-[#5A9BCF]/10
-                           disabled:text-gray-400 disabled:cursor-not-allowed
-                           transition-all duration-200 group/btn"
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-[#ECFDF5] text-[#16A34A] transition-transform duration-200 hover:-translate-y-0.5 hover:bg-[#D1FAE5] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                   title="Download"
                 >
-                  <Download className="w-5 h-5 group-hover/btn:scale-110 transition-transform" />
+                  <Download className="h-5 w-5" />
                 </button>
-                <ChevronRight className="w-5 h-5 text-[#666666] group-hover:text-[#5A9BCF] 
-                                       group-hover:translate-x-1 transition-all" />
+                <ChevronRight className="h-5 w-5 text-[#94A3B8] transition-transform duration-200 group-hover:translate-x-1 group-hover:text-[#4F46E5]" />
               </div>
             </div>
           </div>

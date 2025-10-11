@@ -21,10 +21,10 @@ const SessionCards: React.FC<SessionCardsProps> = ({ sessions, onViewNote }) => 
   
   if (sessions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 px-4">
-        <div className="w-24 h-24 bg-[#5A9BCF]/10 rounded-full flex items-center justify-center mb-6">
+         <div className="flex flex-col items-center justify-center py-20 px-4">
+           <div className="w-24 h-24 bg-[#4F46E5]/10 rounded-full flex items-center justify-center mb-6">
           <svg 
-            className="w-12 h-12 text-[#5A9BCF]" 
+               className="w-12 h-12 text-[#6366F1]" 
             fill="none" 
             viewBox="0 0 24 24" 
             stroke="currentColor"
@@ -37,10 +37,10 @@ const SessionCards: React.FC<SessionCardsProps> = ({ sessions, onViewNote }) => 
             />
           </svg>
         </div>
-        <h3 className="text-xl font-bold text-[#333333] mb-2">
+        <h3 className="text-xl font-bold text-[#111827] mb-2">
           Nenhuma Sessão Encontrada
         </h3>
-        <p className="text-[#666666] text-center max-w-md">
+        <p className="text-[#6B7280] text-center max-w-md">
           Você ainda não criou nenhuma sessão. Clique em &quot;Nova Sessão&quot; para começar a documentar seus atendimentos.
         </p>
       </div>
@@ -48,7 +48,7 @@ const SessionCards: React.FC<SessionCardsProps> = ({ sessions, onViewNote }) => 
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
       {sessions.map((session, index) => (
         <SessionCard
           key={session.id}

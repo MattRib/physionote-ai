@@ -18,7 +18,6 @@ const LoginPage = () => {
     
     // Simulação de login - substituir com lógica real
     setTimeout(() => {
-      console.log('Login attempt:', { email, password });
       // Redirecionar para dashboard após login bem-sucedido
       router.push('/dashboard');
     }, 1500);
@@ -35,10 +34,10 @@ const LoginPage = () => {
           <div className="text-center space-y-2 opacity-0 animate-hero-title">
             <Link href="/" className="inline-block">
               <div className="flex items-center justify-center space-x-2">
-                <div className="w-10 h-10 bg-[#5A9BCF] rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-[#4F46E5] rounded-lg flex items-center justify-center">
                   <Activity className="w-6 h-6 text-white" />
                 </div>
-                <h1 className="text-2xl font-bold text-[#333333]">
+                <h1 className="text-2xl font-bold text-[#111827]">
                   PhysioNote.AI
                 </h1>
               </div>
