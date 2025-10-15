@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
 	Activity,
 	AlertCircle,
@@ -24,6 +24,7 @@ interface SessionSummaryProps {
 	patient: { id: string; name: string };
 	duration: number;
 	transcription: string[];
+	generatedNote?: any; // Nota gerada pela IA
 	onSave: () => void;
 	onCancel: () => void;
 	showAIDisclaimer?: boolean;
@@ -38,6 +39,59 @@ type SectionKey =
 	| "orientacoes"
 	| "plano"
 	| "transcricao";
+
+// Função para normalizar nota da API para formato do componente
+const normalizeNote = (apiNote: any, patientName: string) => {
+	if (!apiNote) return getMockSessionNote(patientName);
+	
+	return {
+		resumoExecutivo: {
+			queixaPrincipal: apiNote.resumoExecutivo?.queixaPrincipal || "",
+			nivelDor: apiNote.resumoExecutivo?.nivelDor || 0,
+			evolucao: apiNote.resumoExecutivo?.evolucao || ""
+		},
+		anamnese: {
+			historicoAtual: apiNote.anamnese?.historicoAtual || "",
+			antecedentesPessoais: apiNote.anamnese?.antecedentesPessoais || "",
+			medicamentos: apiNote.anamnese?.medicamentos || "",
+			objetivos: apiNote.anamnese?.objetivos || ""
+		},
+		diagnosticoFisioterapeutico: {
+			principal: apiNote.diagnosticoFisioterapeutico?.principal || "",
+			secundario: apiNote.diagnosticoFisioterapeutico?.secundarios || 
+			           apiNote.diagnosticoFisioterapeutico?.secundario || [],
+			cif: apiNote.diagnosticoFisioterapeutico?.cif || ""
+		},
+		intervencoes: {
+			tecnicasManuais: apiNote.intervencoes?.tecnicasManuais || [],
+			exerciciosTerapeuticos: apiNote.intervencoes?.exerciciosTerapeuticos || [],
+			recursosEletrotermofototerapeticos: apiNote.intervencoes?.recursosEletrotermo || 
+			                                   apiNote.intervencoes?.recursosEletrotermofototerapeticos || []
+		},
+		respostaTratamento: {
+			imediata: apiNote.respostaTratamento?.imediata || "",
+			efeitos: apiNote.respostaTratamento?.efeitos || "",
+			feedback: apiNote.respostaTratamento?.feedback || ""
+		},
+		orientacoes: {
+			domiciliares: apiNote.orientacoes?.domiciliares || [],
+			ergonomicas: apiNote.orientacoes?.ergonomicas || [],
+			precaucoes: apiNote.orientacoes?.precaucoes || []
+		},
+		planoTratamento: {
+			frequencia: apiNote.planoTratamento?.frequencia || "",
+			duracaoPrevista: apiNote.planoTratamento?.duracaoPrevista || "",
+			objetivosCurtoPrazo: apiNote.planoTratamento?.objetivosCurtoPrazo || [],
+			objetivosLongoPrazo: apiNote.planoTratamento?.objetivosLongoPrazo || [],
+			criteriosAlta: apiNote.planoTratamento?.criteriosAlta || []
+		},
+		observacoesAdicionais: apiNote.observacoesAdicionais || "",
+		proximaSessao: {
+			data: apiNote.proximaSessao?.data || "",
+			foco: apiNote.proximaSessao?.foco || ""
+		}
+	};
+};
 
 const getMockSessionNote = (patientName: string) => ({
 	resumoExecutivo: {
@@ -201,15 +255,26 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
 	patient,
 	duration,
 	transcription,
+	generatedNote,
 	onSave,
 	onCancel,
 	showAIDisclaimer = true
 }) => {
 	const [copied, setCopied] = useState(false);
-		const [expandedSections, setExpandedSections] = useState<Set<SectionKey>>(() =>
-			new Set<SectionKey>(["resumo", "anamnese", "diagnostico", "intervencoes", "resposta", "orientacoes", "plano"])
-		);
-	const [note, setNote] = useState(getMockSessionNote(patient.name));
+	const [expandedSections, setExpandedSections] = useState<Set<SectionKey>>(() =>
+		new Set<SectionKey>(["resumo", "anamnese", "diagnostico", "intervencoes", "resposta", "orientacoes", "plano"])
+	);
+	
+	// Usar nota gerada pela IA se disponível, senão usar mock
+	const [note, setNote] = useState(() => normalizeNote(generatedNote, patient.name));
+
+	// Atualizar nota quando generatedNote mudar
+	useEffect(() => {
+		if (generatedNote) {
+			console.log('Usando nota gerada pela IA:', generatedNote);
+			setNote(normalizeNote(generatedNote, patient.name));
+		}
+	}, [generatedNote, patient.name]);
 
 	const sessionData = useMemo(
 		() => ({

@@ -18,14 +18,18 @@ const SessionView = () => {
   const searchParams = useSearchParams();
   const [sessionStarted, setSessionStarted] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<{id: string, name: string} | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [transcription, setTranscription] = useState<string[]>([]);
+  const [generatedNote, setGeneratedNote] = useState<any>(null);
   const [showSummary, setShowSummary] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState('');
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<BlobPart[]>([]);
   const startRecordingRef = useRef<() => Promise<void> | void>();
   const shouldAutoStartRef = useRef(false);
 
@@ -54,38 +58,61 @@ const SessionView = () => {
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleStartSession = () => {
+  const handleStartSession = async () => {
     if (!selectedPatient) {
       alert('Por favor, selecione um paciente antes de iniciar a sessão.');
       return;
     }
-    setSessionStarted(true);
-    startRecording();
+
+    try {
+      // Criar sessão no backend
+      const response = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: selectedPatient.id,
+          sessionType: 'Atendimento',
+          specialty: 'Fisioterapia',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao criar sessão');
+      }
+
+      const data = await response.json();
+      setSessionId(data.id);
+      setSessionStarted(true);
+      startRecording();
+    } catch (error) {
+      console.error('Error creating session:', error);
+      alert('Não foi possível criar a sessão. Tente novamente.');
+    }
   };
 
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
       mediaRecorderRef.current = mediaRecorder;
-
-      const audioChunks: BlobPart[] = [];
+      audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
-        // Simular transcrição em tempo real
-        simulateTranscription();
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
       };
 
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        // Áudio gravado e pronto para upload
+      mediaRecorder.onstop = async () => {
+        // Áudio será processado no handleStopSession
       };
 
       mediaRecorder.start(1000); // Captura dados a cada 1 segundo
       setIsRecording(true);
     } catch (error) {
+      console.error('Error accessing microphone:', error);
       alert('Não foi possível acessar o microfone. Verifique as permissões.');
     }
   };
@@ -93,8 +120,13 @@ const SessionView = () => {
   startRecordingRef.current = startRecording;
 
   useEffect(() => {
+    const sessionIdParam = searchParams.get('sessionId');
     const patientId = searchParams.get('patientId');
     const patientName = searchParams.get('patientName');
+
+    if (sessionIdParam) {
+      setSessionId(sessionIdParam);
+    }
 
     if (!patientId || !patientName || shouldAutoStartRef.current) {
       return;
@@ -110,27 +142,14 @@ const SessionView = () => {
     }, 0);
   }, [searchParams]);
 
-  const simulateTranscription = () => {
-    // Simulação de transcrição - substituir com API real
-    const mockPhrases = [
-      'Paciente relata dor na região lombar há aproximadamente 2 semanas.',
-      'Dor aumenta ao realizar movimentos de flexão do tronco.',
-      'Observada limitação de amplitude de movimento em flexão lombar.',
-      'Aplicada técnica de mobilização articular grau 3.',
-      'Paciente respondeu bem à técnica aplicada.',
-      'Prescrito exercícios de fortalecimento para região do core.',
-      'Orientações sobre postura durante atividades diárias.'
-    ];
-
-    // Adiciona uma frase aleatória a cada 5 segundos
-    if (duration % 5 === 0 && duration > 0) {
-      const randomPhrase = mockPhrases[Math.floor(Math.random() * mockPhrases.length)];
-      setTranscription(prev => [...prev, randomPhrase]);
-    }
-  };
-
   const handleStopSession = async () => {
+    if (!sessionId) {
+      alert('Erro: ID da sessão não encontrado');
+      return;
+    }
+
     setIsFinishing(true);
+    setProcessingStatus('Finalizando gravação...');
     
     // Parar gravação
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
@@ -139,11 +158,82 @@ const SessionView = () => {
     }
     setIsRecording(false);
 
-    // Animação de transição (2 segundos)
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    setIsFinishing(false);
-    setShowSummary(true);
+    // Aguardar um pouco para garantir que todos os chunks foram coletados
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    try {
+      // 1. Criar blob de áudio
+      setProcessingStatus('Preparando áudio...');
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      
+      if (audioBlob.size === 0) {
+        throw new Error('Nenhum áudio foi gravado');
+      }
+
+      console.log(`Audio size: ${(audioBlob.size / 1024 / 1024).toFixed(2)}MB`);
+
+      // 2. Upload do áudio
+      setProcessingStatus('Enviando áudio...');
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+
+      const uploadResponse = await fetch(`/api/sessions/${sessionId}/audio`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        const error = await uploadResponse.json();
+        throw new Error(error.error || 'Falha no upload do áudio');
+      }
+
+      console.log('Audio uploaded successfully');
+
+      // 3. Processar com IA (Whisper + GPT-4)
+      setProcessingStatus('Transcrevendo com IA...');
+      const processResponse = await fetch(`/api/sessions/${sessionId}/process`, {
+        method: 'POST',
+      });
+
+      if (!processResponse.ok) {
+        const error = await processResponse.json();
+        throw new Error(error.error || 'Falha no processamento');
+      }
+
+      const result = await processResponse.json();
+      console.log('Processing complete:', result);
+
+      // 4. Atualizar estado com transcrição e nota gerada
+      if (result.session?.transcription) {
+        // Dividir transcrição em frases
+        const sentences = result.session.transcription
+          .split(/[.!?]+/)
+          .map((s: string) => s.trim())
+          .filter((s: string) => s.length > 0);
+        setTranscription(sentences);
+      }
+
+      // Armazenar nota gerada pela IA
+      if (result.note) {
+        console.log('Nota gerada pela IA:', result.note);
+        setGeneratedNote(result.note);
+      }
+
+      setProcessingStatus('Concluído!');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      setIsFinishing(false);
+      setShowSummary(true);
+    } catch (error: any) {
+      console.error('Error processing session:', error);
+      setIsFinishing(false);
+      alert(`Erro ao processar sessão: ${error.message}\n\nTente novamente ou entre em contato com o suporte.`);
+      
+      // Perguntar se deseja tentar novamente
+      if (confirm('Deseja tentar processar novamente?')) {
+        handleStopSession();
+      }
+    }
   };
 
   const handleSaveSession = () => {
@@ -215,6 +305,7 @@ const SessionView = () => {
         patient={selectedPatient!}
         duration={duration}
         transcription={transcription}
+        generatedNote={generatedNote}
         onSave={handleSaveSession}
         onCancel={handleCancelSession}
         showAIDisclaimer={true}
@@ -274,8 +365,12 @@ const SessionView = () => {
             <div className="flex w-full items-center justify-center gap-4 rounded-2xl border border-white/70 bg-white/80 px-10 py-5 shadow-[0_24px_50px_-32px_rgba(15,23,42,0.25)]">
               <Loader2 className="h-5 w-5 animate-spin text-[#4F46E5]" aria-hidden="true" />
               <div className="text-left">
-                <p className="text-sm font-semibold text-[#0F172A]">Finalizando consulta...</p>
-                <p className="text-xs text-[#64748B]">Gerando transcrição e preparando o resumo inteligente</p>
+                <p className="text-sm font-semibold text-[#0F172A]">{processingStatus || 'Processando...'}</p>
+                <p className="text-xs text-[#64748B]">
+                  {processingStatus.includes('Transcrevendo') 
+                    ? 'Isso pode levar alguns minutos dependendo do tamanho do áudio'
+                    : 'Gerando transcrição e preparando o resumo inteligente'}
+                </p>
               </div>
             </div>
           )}

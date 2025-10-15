@@ -1,5 +1,9 @@
 # Fluxo de Transcrição - PhysioNote.AI
 
+## ✅ Status da Implementação: CONCLUÍDO
+
+O sistema está **totalmente funcional**. Após a gravação, a transcrição do Whisper gera automaticamente a nota estruturada com GPT-4 e redireciona para a página `SessionSummary` onde o usuário pode revisar e editar todos os campos.
+
 ## 📋 Visão Geral
 
 O sistema de transcrição foi projetado para minimizar distrações durante o atendimento, permitindo que o fisioterapeuta foque totalmente no paciente. A transcrição acontece silenciosamente em segundo plano e só é apresentada após a finalização da consulta.
@@ -187,6 +191,235 @@ const [isEditingTranscription, setIsEditingTranscription] = useState(false);
 const [editedTranscription, setEditedTranscription] = useState(string);
 const [copied, setCopied] = useState(false);
 ```
+
+---
+
+## 🤖 Processamento com IA (Whisper + GPT-4)
+
+### Etapa 1: Finalizar Gravação
+**Função:** `handleStopSession()` em `SessionView.tsx`
+
+```typescript
+// 1. Para MediaRecorder
+mediaRecorderRef.current.stop();
+setIsRecording(false);
+
+// 2. Cria Blob de áudio
+const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+```
+
+### Etapa 2: Upload do Áudio
+**Endpoint:** `POST /api/sessions/[id]/audio`
+
+```typescript
+// Upload FormData com arquivo de áudio
+const formData = new FormData();
+formData.append('audio', audioBlob, 'recording.webm');
+
+await fetch(`/api/sessions/${sessionId}/audio`, {
+  method: 'POST',
+  body: formData
+});
+
+// Validações:
+- Tamanho máximo: 25MB
+- Formatos: webm, mp3, wav, m4a
+- Salva em: uploads/audio/[sessionId].webm
+- Atualiza: session.audioUrl no banco
+```
+
+### Etapa 3: Processar com IA
+**Endpoint:** `POST /api/sessions/[id]/process`
+
+#### 3.1. Transcrição com Whisper
+```typescript
+// Status: "transcribing"
+const transcription = await transcribeAudio(audioPath, 'pt');
+
+// Salva no banco
+await prisma.session.update({
+  data: {
+    transcription: transcription.text,
+    status: 'generating'
+  }
+});
+```
+
+**API Utilizada:**
+- Modelo: `whisper-1` (OpenAI)
+- Idioma: Português (`pt`)
+- Custo: $0.006/minuto
+- Tempo médio: 20-30 segundos para 30 min de áudio
+
+#### 3.2. Geração de Nota com GPT-4
+```typescript
+// Status: "generating"
+const { note, model } = await generateNoteFromTranscription({
+  transcription: text,
+  patientName: session.patient.name,
+  patientAge: calculatedAge,
+  patientGender: session.patient.gender,
+  sessionDate: session.date
+});
+```
+
+**API Utilizada:**
+- Modelo: `gpt-4o` (OpenAI)
+- Prompt: Especializado para fisioterapia
+- Formato: JSON estruturado (baseado em SOAP)
+- Custo médio: $0.15 por nota
+- Tempo médio: 10-20 segundos
+
+**Estrutura da Nota Gerada:**
+```json
+{
+  "resumoExecutivo": {
+    "queixaPrincipal": "string",
+    "nivelDor": 0-10,
+    "evolucao": "string"
+  },
+  "anamnese": {
+    "historicoAtual": "string",
+    "antecedentesPessoais": "string",
+    "medicamentos": "string",
+    "objetivos": "string"
+  },
+  "diagnosticoFisioterapeutico": {
+    "principal": "string",
+    "secundario": ["string[]"],
+    "cif": "string"
+  },
+  "intervencoes": {
+    "tecnicasManuais": ["string[]"],
+    "exerciciosTerapeuticos": ["string[]"],
+    "recursosEletrotermofototerapeticos": ["string[]"]
+  },
+  "respostaTratamento": {
+    "imediata": "string",
+    "efeitos": "string",
+    "feedback": "string"
+  },
+  "orientacoes": {
+    "domiciliares": ["string[]"],
+    "ergonomicas": ["string[]"],
+    "precaucoes": ["string[]"]
+  },
+  "planoTratamento": {
+    "frequencia": "string",
+    "duracaoPrevista": "string",
+    "objetivosCurtoPrazo": ["string[]"],
+    "objetivosLongoPrazo": ["string[]"],
+    "criteriosAlta": ["string[]"]
+  },
+  "observacoesAdicionais": "string",
+  "proximaSessao": {
+    "data": "string",
+    "foco": "string"
+  }
+}
+```
+
+#### 3.3. Salvamento da Nota
+```typescript
+// Cria ou atualiza nota no banco
+await prisma.note.upsert({
+  where: { sessionId },
+  create: {
+    contentJson: JSON.stringify(note),
+    aiGenerated: true,
+    aiModel: 'gpt-4o',
+    aiPromptUsed: prompt
+  }
+});
+
+// Marca sessão como completa
+await prisma.session.update({
+  data: { status: 'completed' }
+});
+```
+
+### Etapa 4: Redirecionamento para SessionSummary
+**Volta para:** `SessionView.tsx`
+
+```typescript
+// Após sucesso do processamento
+const result = await processResponse.json();
+
+// Atualiza transcrição (dividida em frases)
+if (result.session?.transcription) {
+  const sentences = result.session.transcription
+    .split(/[.!?]+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+  setTranscription(sentences);
+}
+
+// 🎯 REDIRECIONA PARA SESSIONSUMMARY
+setShowSummary(true);
+```
+
+### Etapa 5: Renderização do SessionSummary
+**Componente:** `SessionSummary_fullscreen.tsx`
+
+```typescript
+// SessionView renderiza SessionSummary quando showSummary=true
+if (showSummary) {
+  return (
+    <SessionSummary
+      patient={selectedPatient!}
+      duration={duration}
+      transcription={transcription}  // ← Texto do Whisper
+      onSave={handleSaveSession}
+      onCancel={handleCancelSession}
+      showAIDisclaimer={true}
+    />
+  );
+}
+```
+
+**O SessionSummary exibe:**
+- ✅ Informações da sessão (paciente, data, duração)
+- ✅ Nota estruturada em seções colapsáveis (dados do GPT-4)
+- ✅ Transcrição original (texto do Whisper)
+- ✅ Todos os campos são **editáveis**
+- ✅ Botões: Copiar, Exportar PDF, Salvar, Descartar
+
+---
+
+## 📊 Estados da Sessão
+
+```
+recording      → Gravando áudio
+  ↓
+uploaded       → Áudio enviado
+  ↓
+transcribing   → Whisper processando (~20-30s)
+  ↓
+generating     → GPT-4 gerando nota (~10-20s)
+  ↓
+completed      → ✅ Nota gerada e salva
+  ↓
+(showSummary=true) → SessionSummary renderizado
+```
+
+**Feedback Visual Durante Processamento:**
+```
+"Finalizando gravação..."
+"Preparando áudio..."
+"Enviando áudio..."
+"Transcrevendo com IA..."  ← Whisper
+"Concluído!"               ← Pronto!
+```
+
+---
+
+## 💰 Custos por Sessão (30 minutos)
+
+| Serviço | Modelo | Custo |
+|---------|--------|-------|
+| Whisper | whisper-1 | $0.18 |
+| GPT-4 | gpt-4o | $0.15 |
+| **Total** | - | **$0.33** |
 
 ---
 

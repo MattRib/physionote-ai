@@ -32,18 +32,21 @@ model Patient {
 }
 
 model Session {
-  id            String    @id @default(cuid())
+  id            String   @id @default(cuid())
   patientId     String
-  date          DateTime  @default(now())
+  date          DateTime @default(now())
   durationMin   Int?
+  sessionType   String? // Tipo da sessão (Avaliação inicial, Retorno, etc)
+  specialty     String? // Especialidade (Fisioterapia Ortopédica, etc)
+  motivation    String? // Motivação/objetivo da consulta
   audioUrl      String?
-  audioSize     Int?      // tamanho em bytes
-  transcription String?   // texto completo da transcrição
-  status        String    @default("recording") // recording | transcribing | generating | completed | error
+  audioSize     Int? // tamanho em bytes
+  transcription String? // texto completo da transcrição
+  status        String   @default("recording") // recording | transcribing | generating | completed | error
   errorMessage  String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  patient       Patient   @relation(fields: [patientId], references: [id])
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  patient       Patient  @relation(fields: [patientId], references: [id])
   note          Note?
 
   @@index([patientId, date])
@@ -53,11 +56,11 @@ model Session {
 model Note {
   id           String    @id @default(cuid())
   sessionId    String    @unique
-  contentJson  String    // JSON estruturado da nota
+  contentJson  String // JSON estruturado da nota
   aiGenerated  Boolean   @default(false)
-  aiModel      String?   // ex: "gpt-4-turbo-preview"
-  aiPromptUsed String?   // prompt usado (para auditoria)
-  reviewedBy   String?   // userId que revisou (futuro)
+  aiModel      String? // ex: "gpt-4-turbo-preview"
+  aiPromptUsed String? // prompt usado (para auditoria)
+  reviewedBy   String? // userId que revisou (futuro)
   reviewedAt   DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
