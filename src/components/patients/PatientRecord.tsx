@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Activity,
   AlertCircle,
@@ -13,281 +13,207 @@ import {
   Clock,
   Download,
   FileText,
+  Loader2,
   Mail,
   MapPin,
   Phone,
   Sparkles,
   Stethoscope,
   Target,
-  TrendingUp
+  TrendingUp,
+  Pin,
+  PinOff,
+  Trash2,
+  RefreshCw
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import AlertModal from '@/components/common/AlertModal';
 
-interface FullSessionNote {
-  id: string;
-  date: string;
-  duration: number;
-  resumoExecutivo: {
-    queixaPrincipal: string;
-    nivelDor: number;
-    evolucao: string;
+// Tipos para a resposta da API
+interface NoteContent {
+  resumoExecutivo?: {
+    queixaPrincipal?: string;
+    nivelDor?: number | null;
+    evolucao?: string | null;
   };
-  anamnese: {
-    historicoAtual: string;
-    antecedentesPessoais: string;
-    medicamentos: string;
-    objetivos: string;
+  anamnese?: {
+    historicoAtual?: string;
+    antecedentesPessoais?: string;
+    medicamentos?: string;
+    objetivos?: string;
   };
-  diagnosticoFisioterapeutico: {
-    principal: string;
-    secundario: string[];
-    cif: string;
+  diagnosticoFisioterapeutico?: {
+    principal?: string;
+    secundarios?: string[]; // API retorna "secundarios", não "secundario"
+    cif?: string;
   };
-  intervencoes: {
-    tecnicasManuais: string[];
-    exerciciosTerapeuticos: string[];
-    recursosEletrotermofototerapeticos: string[];
+  intervencoes?: {
+    tecnicasManuais?: string[];
+    exerciciosTerapeuticos?: string[];
+    recursosEletrotermo?: string[]; // API retorna este nome
   };
-  respostaTratamento: {
-    imediata: string;
-    efeitos: string;
-    feedback: string;
+  respostaTratamento?: {
+    imediata?: string;
+    efeitos?: string;
+    feedback?: string;
   };
-  orientacoes: {
-    domiciliares: string[];
-    ergonomicas: string[];
-    precaucoes: string[];
+  orientacoes?: {
+    domiciliares?: string[];
+    ergonomicas?: string[];
+    precaucoes?: string[];
   };
-  planoTratamento: {
-    frequencia: string;
-    duracaoPrevista: string;
-    objetivosCurtoPrazo: string[];
-    objetivosLongoPrazo: string[];
-    criteriosAlta: string[];
+  planoTratamento?: {
+    frequencia?: string;
+    duracaoPrevista?: string;
+    objetivosCurtoPrazo?: string[];
+    objetivosLongoPrazo?: string[];
+    criteriosAlta?: string[];
   };
-  observacoesAdicionais: string;
-  proximaSessao: {
-    data: string;
-    foco: string;
+  observacoesAdicionais?: string;
+  proximaSessao?: {
+    data?: string;
+    foco?: string;
   };
 }
 
-interface PatientRecordData {
+interface SessionNote {
   id: string;
-  name: string;
-  email: string;
-  phone: string;
-  cpf: string;
-  birthDate: string;
-  gender: string;
-  address: {
-    street: string;
-    number: string;
-    complement?: string | null;
-    neighborhood: string;
-    city: string;
-    state: string;
-    zipCode: string;
-  };
-  medicalHistory: string;
+  aiGenerated: boolean;
+  aiModel: string | null;
   createdAt: string;
-  totalSessions: number;
-  sessions: FullSessionNote[];
+  updatedAt: string;
+  content: NoteContent;
+}
+
+interface SessionWithNote {
+  id: string;
+  date: string;
+  durationMin: number | null;
+  sessionType: string | null;
+  specialty: string | null;
+  motivation: string | null;
+  status: string;
+  transcription: string | null;
+  note: SessionNote | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface HistorySummary {
+  id: string;
+  content: string;
+  isPinned: boolean;
+  sessionsIds: string[];
+  aiModel: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface PatientRecordResponse {
+  patient: {
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+    cpf: string | null;
+    birthDate: string | null;
+    gender: string | null;
+    address: {
+      street: string | null;
+      number: string | null;
+      complement?: string | null;
+      neighborhood: string | null;
+      city: string | null;
+      state: string | null;
+      zipCode: string | null;
+    };
+    createdAt: string;
+    updatedAt: string;
+  };
+  statistics: {
+    totalSessions: number;
+    completedSessions: number;
+    totalDurationMinutes: number;
+    averageDurationMinutes: number;
+    firstSessionDate: string | null;
+    lastSessionDate: string | null;
+  };
+  sessions: SessionWithNote[];
 }
 
 interface PatientRecordProps {
   patientId: string;
 }
 
-const getMockPatientData = (id: string): PatientRecordData => {
-  const sessions: FullSessionNote[] = [
-    {
-      id: '1',
-      date: '2024-03-20T14:30:00',
-      duration: 45,
-      resumoExecutivo: {
-        queixaPrincipal: 'Dor lombar crônica há aproximadamente 3 meses, com intensificação nos últimos 15 dias',
-        nivelDor: 7,
-        evolucao: 'Paciente apresentou melhora de 30% em relação à última sessão'
-      },
-      anamnese: {
-        historicoAtual: 'Paciente relata início insidioso de dor na região lombar há 3 meses, sem trauma aparente. Dor tipo queimação, intensidade 7/10, com irradiação para membro inferior direito até joelho. Piora com permanência prolongada em pé e melhora parcial com repouso.',
-        antecedentesPessoais: 'Sedentário, sobrepeso (IMC 28), sem histórico de cirurgias prévias na coluna',
-        medicamentos: 'Dipirona 1g SOS para dor (uso irregular)',
-        objetivos: 'Retornar às atividades de trabalho sem limitações e poder praticar caminhada recreativa'
-      },
-      diagnosticoFisioterapeutico: {
-        principal: 'Lombalgia mecânica crônica com radiculopatia L5-S1 à direita',
-        secundario: [
-          'Desequilíbrio muscular da região lombopélvica',
-          'Fraqueza da musculatura estabilizadora do core',
-          'Encurtamento de musculatura posterior de membros inferiores'
-        ],
-        cif: 'b28013 (Dor na região lombar - grave) + b7101 (Mobilidade das articulações da coluna lombar - limitação moderada)'
-      },
-      intervencoes: {
-        tecnicasManuais: [
-          'Mobilização articular de L4-L5 grau III (Maitland) - 3 séries de 30 segundos',
-          'Liberação miofascial de quadrado lombar bilateral - 5 minutos cada lado',
-          'Massagem de deslizamento profundo em paravertebrais - 8 minutos'
-        ],
-        exerciciosTerapeuticos: [
-          'Exercício de estabilização segmentar - ponte com sustentação isométrica 10s x 10 repetições',
-          'Ativação de transverso abdominal em 4 apoios - 3 séries de 10 repetições',
-          'Alongamento de isquiotibiais em decúbito dorsal - 3 séries de 30s cada perna'
-        ],
-        recursosEletrotermofototerapeticos: [
-          'TENS modo burst na região lombar - 20 minutos (analgesia)',
-          'Compressa quente em região lombar - 10 minutos (pré-tratamento)'
-        ]
-      },
-      respostaTratamento: {
-        imediata: 'Paciente refere diminuição da dor de 7/10 para 4/10 após sessão. Melhora de 30% na amplitude de flexão do tronco.',
-        efeitos: 'Sem efeitos adversos relatados. Paciente tolerou bem todas as intervenções.',
-        feedback: 'Paciente muito satisfeito com resultado imediato, motivado para continuar tratamento'
-      },
-      orientacoes: {
-        domiciliares: [
-          'Aplicar bolsa de água morna na região lombar por 15-20 minutos, 2x ao dia',
-          'Realizar alongamento de isquiotibiais 3x ao dia',
-          'Praticar exercício de ativação do transverso abdominal em casa'
-        ],
-        ergonomicas: [
-          'Utilizar apoio lombar na cadeira do trabalho',
-          'Fazer pausas de 5 minutos a cada 1 hora para alongamentos',
-          'Ao pegar objetos do chão, agachar flexionando joelhos'
-        ],
-        precaucoes: [
-          'Evitar movimentos de rotação combinada com flexão do tronco',
-          'Não carregar peso acima de 5kg por enquanto'
-        ]
-      },
-      planoTratamento: {
-        frequencia: '3x por semana nas próximas 2 semanas',
-        duracaoPrevista: '8-12 semanas para recuperação funcional completa',
-        objetivosCurtoPrazo: [
-          'Reduzir dor para 3/10 ou menos em 2 semanas',
-          'Aumentar ADM de flexão do tronco para 75° em 2 semanas'
-        ],
-        objetivosLongoPrazo: [
-          'Retorno ao trabalho sem limitações em 6-8 semanas',
-          'Iniciar programa de caminhada recreativa em 8 semanas'
-        ],
-        criteriosAlta: [
-          'Ausência de dor ou dor mínima (≤2/10)',
-          'ADM completa e indolor',
-          'Força muscular 5/5'
-        ]
-      },
-      observacoesAdicionais: 'Paciente demonstra boa compreensão das orientações e alta motivação para tratamento.',
-      proximaSessao: {
-        data: '2 dias',
-        foco: 'Progressão de exercícios de estabilização e reavaliação da dor'
-      }
-    },
-    {
-      id: '2',
-      date: '2024-03-18T15:00:00',
-      duration: 50,
-      resumoExecutivo: {
-        queixaPrincipal: 'Dor lombar persistente, dificuldade para dormir',
-        nivelDor: 6,
-        evolucao: 'Redução da dor noturna em 20%'
-      },
-      anamnese: {
-        historicoAtual: 'Paciente relata melhora parcial após sessão anterior, porém dor ainda interfere no sono. Acorda 2-3x durante a noite devido à dor.',
-        antecedentesPessoais: 'Mesmo histórico anterior',
-        medicamentos: 'Dipirona 1g SOS',
-        objetivos: 'Melhorar qualidade do sono'
-      },
-      diagnosticoFisioterapeutico: {
-        principal: 'Lombalgia mecânica com espasmo muscular paravertebral',
-        secundario: ['Distúrbio do sono secundário à dor'],
-        cif: 'b28013 + b134 (Funções do sono)'
-      },
-      intervencoes: {
-        tecnicasManuais: [
-          'Massagem de deslizamento profundo em paravertebrais - 10 minutos',
-          'Liberação de pontos gatilho em quadrado lombar'
-        ],
-        exerciciosTerapeuticos: [
-          'Exercícios de estabilização segmentar',
-          'Alongamento de isquiotibiais'
-        ],
-        recursosEletrotermofototerapeticos: [
-          'TENS convencional - 20 minutos'
-        ]
-      },
-      respostaTratamento: {
-        imediata: 'Redução da tensão muscular palpável. Dor 6/10 para 4/10.',
-        efeitos: 'Sem efeitos adversos',
-        feedback: 'Paciente relatou melhora da mobilidade'
-      },
-      orientacoes: {
-        domiciliares: [
-          'Posição para dormir: decúbito lateral com travesseiro entre os joelhos',
-          'Aplicar calor antes de dormir'
-        ],
-        ergonomicas: [
-          'Evitar sofá muito macio',
-          'Usar colchão de firmeza média'
-        ],
-        precaucoes: [
-          'Evitar dormir em pronação'
-        ]
-      },
-      planoTratamento: {
-        frequencia: '3x por semana',
-        duracaoPrevista: '8-10 semanas',
-        objetivosCurtoPrazo: ['Melhorar qualidade do sono em 50%'],
-        objetivosLongoPrazo: ['Sono sem interrupções por dor'],
-        criteriosAlta: ['Qualidade de sono normalizada']
-      },
-      observacoesAdicionais: 'Paciente aderente ao tratamento.',
-      proximaSessao: {
-        data: '2 dias',
-        foco: 'Continuidade do tratamento e reavaliação do sono'
-      }
-    }
-  ];
-
-  return {
-    id,
-    name: 'Maria Silva Santos',
-    email: 'maria.silva@email.com',
-    phone: '(11) 98765-4321',
-    cpf: '123.456.789-00',
-    birthDate: '1985-03-15',
-    gender: 'Feminino',
-    address: {
-      street: 'Rua das Flores',
-      number: '123',
-      complement: 'Apto 45',
-      neighborhood: 'Centro',
-      city: 'São Paulo',
-      state: 'SP',
-      zipCode: '01234-567'
-    },
-    medicalHistory: 'Histórico de dores lombares crônicas desde 2020. Sedentária. Trabalha como vendedora permanecendo 8h em pé diariamente. Sobrepeso (IMC 28). Sem histórico de cirurgias na coluna. Relata episódios anteriores de lombalgia que melhoravam com repouso. Nega doenças cardiovasculares, diabetes ou hipertensão. Não pratica atividade física regular.',
-    createdAt: '2024-01-15',
-    totalSessions: sessions.length,
-    sessions,
-  };
-};
-
 const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
   const router = useRouter();
-  const patient = getMockPatientData(patientId);
+  
+  // Estados
+  const [recordData, setRecordData] = useState<PatientRecordResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
   const [summarizingHistory, setSummarizingHistory] = useState(false);
-  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [historySummary, setHistorySummary] = useState<HistorySummary | null>(null);
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+  const [visibleCount, setVisibleCount] = useState(5);
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    type: 'success' | 'error' | 'warning' | 'info';
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+    confirmText?: string;
+    showCancel?: boolean;
+  }>({
+    isOpen: false,
+    type: 'info',
+    title: '',
+    message: '',
+  });
+
+  // Busca dados do prontuário ao montar o componente
+  useEffect(() => {
+    const fetchPatientRecord = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const [recordResponse, summaryResponse] = await Promise.all([
+          fetch(`/api/patients/${patientId}/record`),
+          fetch(`/api/patients/${patientId}/history-summary`)
+        ]);
+        
+        if (!recordResponse.ok) {
+          throw new Error('Erro ao buscar prontuário do paciente');
+        }
+        
+        const recordData: PatientRecordResponse = await recordResponse.json();
+        setRecordData(recordData);
+        setVisibleCount(Math.min(5, recordData.sessions.length));
+
+        // Summary pode não existir, não é erro
+        if (summaryResponse.ok) {
+          const summaryData = await summaryResponse.json();
+          if (summaryData.summary) {
+            setHistorySummary(summaryData.summary);
+          }
+        }
+      } catch (err: any) {
+        console.error('Erro ao buscar prontuário:', err);
+        setError(err.message || 'Erro ao carregar prontuário');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPatientRecord();
+  }, [patientId]);
 
   const showToast = (type: 'success' | 'error' | 'info', message: string) => {
     setToast({ type, message });
     setTimeout(() => setToast(null), 3500);
   };
-  const [visibleCount, setVisibleCount] = useState(Math.min(5, patient.sessions.length));
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -328,67 +254,153 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
   };
 
   const handleSummarizeHistory = async () => {
+    // Verificar se já existe resumo
+    if (historySummary) {
+      setAlertModal({
+        isOpen: true,
+        type: 'warning',
+        title: 'Substituir resumo existente?',
+        message: 'Já existe um resumo do histórico. Deseja gerar um novo resumo com base nas sessões atualizadas? Esta ação não pode ser desfeita.',
+        confirmText: 'Sim, gerar novo resumo',
+        showCancel: true,
+        onConfirm: () => generateNewSummary()
+      });
+      return;
+    }
+
+    generateNewSummary();
+  };
+
+  const generateNewSummary = async () => {
     try {
       setSummarizingHistory(true);
-      setAiSummary(null);
-      const res = await fetch('/api/ai/summarize', {
+      
+      const response = await fetch(`/api/patients/${patientId}/history-summary`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ medicalHistory: patient.medicalHistory, sessions: patient.sessions }),
+        headers: { 'Content-Type': 'application/json' }
       });
-      if (!res.ok) throw new Error('Falha ao gerar resumo');
-      const data = await res.json();
-      setAiSummary(data.summary);
-      showToast('success', 'Resumo do histórico gerado.');
-    } catch (e) {
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Falha ao gerar resumo');
+      }
+
+      const data = await response.json();
+      setHistorySummary(data.summary);
+      showToast('success', 'Resumo do histórico gerado com sucesso!');
+    } catch (e: any) {
       console.error(e);
-      showToast('error', 'Não foi possível gerar o resumo com IA agora. Tente novamente.');
+      setAlertModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Erro ao gerar resumo',
+        message: e.message || 'Não foi possível gerar o resumo com IA agora. Tente novamente.'
+      });
     } finally {
       setSummarizingHistory(false);
     }
   };
 
-  const buildSessionText = (session: FullSessionNote) => {
+  const handleTogglePin = async () => {
+    if (!historySummary) return;
+
+    try {
+      const response = await fetch(`/api/patients/${patientId}/history-summary`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPinned: !historySummary.isPinned })
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao atualizar fixação');
+      }
+
+      const data = await response.json();
+      setHistorySummary(data.summary);
+      showToast('success', data.summary.isPinned ? 'Resumo fixado!' : 'Resumo desfixado');
+    } catch (e: any) {
+      console.error(e);
+      showToast('error', 'Erro ao atualizar fixação do resumo');
+    }
+  };
+
+  const handleDeleteSummary = () => {
+    setAlertModal({
+      isOpen: true,
+      type: 'warning',
+      title: 'Excluir resumo?',
+      message: 'Tem certeza que deseja excluir o resumo do histórico? Esta ação não pode ser desfeita.',
+      confirmText: 'Sim, excluir',
+      showCancel: true,
+      onConfirm: async () => {
+        try {
+          const response = await fetch(`/api/patients/${patientId}/history-summary`, {
+            method: 'DELETE'
+          });
+
+          if (!response.ok) {
+            throw new Error('Falha ao excluir resumo');
+          }
+
+          setHistorySummary(null);
+          showToast('success', 'Resumo excluído com sucesso');
+        } catch (e: any) {
+          console.error(e);
+          setAlertModal({
+            isOpen: true,
+            type: 'error',
+            title: 'Erro',
+            message: 'Não foi possível excluir o resumo. Tente novamente.'
+          });
+        }
+      }
+    });
+  };
+
+  const buildSessionText = (session: SessionWithNote) => {
+    const note = session.note?.content;
+    if (!note) return 'Nota não disponível';
+
     return `NOTA DE EVOLUÇÃO FISIOTERAPÊUTICA\n` +
 `Paciente: ${patient.name}\n` +
 `Data: ${formatDate(session.date)} às ${formatTime(session.date)}\n` +
-`Duração: ${session.duration} minutos\n\n` +
+`Duração: ${session.durationMin || 'N/A'} minutos\n\n` +
 `RESUMO EXECUTIVO\n` +
-`Queixa Principal: ${session.resumoExecutivo.queixaPrincipal}\n` +
-`Nível de Dor: ${session.resumoExecutivo.nivelDor}/10\n` +
-`Evolução: ${session.resumoExecutivo.evolucao}\n\n` +
+`Queixa Principal: ${note.resumoExecutivo?.queixaPrincipal || 'N/A'}\n` +
+`Nível de Dor: ${note.resumoExecutivo?.nivelDor || 'N/A'}/10\n` +
+`Evolução: ${note.resumoExecutivo?.evolucao || 'N/A'}\n\n` +
 `ANAMNESE\n` +
-`${session.anamnese.historicoAtual}\n` +
-`Antecedentes: ${session.anamnese.antecedentesPessoais}\n` +
-`Medicamentos: ${session.anamnese.medicamentos}\n` +
-`Objetivos: ${session.anamnese.objetivos}\n\n` +
+`${note.anamnese?.historicoAtual || 'N/A'}\n` +
+`Antecedentes: ${note.anamnese?.antecedentesPessoais || 'N/A'}\n` +
+`Medicamentos: ${note.anamnese?.medicamentos || 'N/A'}\n` +
+`Objetivos: ${note.anamnese?.objetivos || 'N/A'}\n\n` +
 `DIAGNÓSTICO\n` +
-`${session.diagnosticoFisioterapeutico.principal}\n` +
-`${session.diagnosticoFisioterapeutico.secundario.map((s)=>'- '+s).join('\n')}\n` +
-`CIF: ${session.diagnosticoFisioterapeutico.cif}\n\n` +
+`${note.diagnosticoFisioterapeutico?.principal || 'N/A'}\n` +
+`${(note.diagnosticoFisioterapeutico?.secundarios || []).map((s: string)=>'- '+s).join('\n')}\n` +
+`CIF: ${note.diagnosticoFisioterapeutico?.cif || 'N/A'}\n\n` +
 `INTERVENÇÕES\n` +
-`${session.intervencoes.tecnicasManuais.map((i)=>'- '+i).join('\n')}\n` +
-`${session.intervencoes.exerciciosTerapeuticos.map((i)=>'- '+i).join('\n')}\n` +
-`${session.intervencoes.recursosEletrotermofototerapeticos.map((i)=>'- '+i).join('\n')}\n\n` +
+`${(note.intervencoes?.tecnicasManuais || []).map((i: string)=>'- '+i).join('\n')}\n` +
+`${(note.intervencoes?.exerciciosTerapeuticos || []).map((i: string)=>'- '+i).join('\n')}\n` +
+`${(note.intervencoes?.recursosEletrotermo || []).map((i: string)=>'- '+i).join('\n')}\n\n` +
 `RESPOSTA AO TRATAMENTO\n` +
-`${session.respostaTratamento.imediata}\n` +
-`Efeitos: ${session.respostaTratamento.efeitos}\n` +
-`Feedback: ${session.respostaTratamento.feedback}\n\n` +
+`${note.respostaTratamento?.imediata || 'N/A'}\n` +
+`Efeitos: ${note.respostaTratamento?.efeitos || 'N/A'}\n` +
+`Feedback: ${note.respostaTratamento?.feedback || 'N/A'}\n\n` +
 `ORIENTAÇÕES\n` +
-`${session.orientacoes.domiciliares.map((i)=>'- '+i).join('\n')}\n` +
-`${session.orientacoes.ergonomicas.map((i)=>'- '+i).join('\n')}\n` +
-`Precauções:\n${session.orientacoes.precaucoes.map((i)=>'- '+i).join('\n')}\n\n` +
+`${(note.orientacoes?.domiciliares || []).map((i: string)=>'- '+i).join('\n')}\n` +
+`${(note.orientacoes?.ergonomicas || []).map((i: string)=>'- '+i).join('\n')}\n` +
+`Precauções:\n${(note.orientacoes?.precaucoes || []).map((i: string)=>'- '+i).join('\n')}\n\n` +
 `PLANO\n` +
-`Frequência: ${session.planoTratamento.frequencia}\n` +
-`Duração prevista: ${session.planoTratamento.duracaoPrevista}\n` +
-`Objetivos CP: ${session.planoTratamento.objetivosCurtoPrazo.join('; ')}\n` +
-`Objetivos LP: ${session.planoTratamento.objetivosLongoPrazo.join('; ')}\n` +
-`Critérios de alta: ${session.planoTratamento.criteriosAlta.join('; ')}\n\n` +
-`OBSERVAÇÕES\n${session.observacoesAdicionais}\n` +
-`PRÓXIMA SESSÃO\n${session.proximaSessao.data} — ${session.proximaSessao.foco}\n`;
+`Frequência: ${note.planoTratamento?.frequencia || 'N/A'}\n` +
+`Duração prevista: ${note.planoTratamento?.duracaoPrevista || 'N/A'}\n` +
+`Objetivos CP: ${(note.planoTratamento?.objetivosCurtoPrazo || []).join('; ')}\n` +
+`Objetivos LP: ${(note.planoTratamento?.objetivosLongoPrazo || []).join('; ')}\n` +
+`Critérios de alta: ${(note.planoTratamento?.criteriosAlta || []).join('; ')}\n\n` +
+`OBSERVAÇÕES\n${note.observacoesAdicionais || 'N/A'}\n` +
+`PRÓXIMA SESSÃO\n${note.proximaSessao?.data || 'N/A'} — ${note.proximaSessao?.foco || 'N/A'}\n`;
   };
 
-  const handleExportNote = async (session: FullSessionNote) => {
+  const handleExportNote = async (session: SessionWithNote) => {
     try {
       const { jsPDF } = await import('jspdf');
       const doc = new jsPDF();
@@ -469,13 +481,13 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
           cursorY = 22;
         }
       };
-      addBlock(`Dados do paciente: CPF ${patient.cpf} • Nasc.: ${formatDate(patient.birthDate)} • ${patient.gender}`);
+      addBlock(`Dados do paciente: CPF ${patient.cpf || 'N/A'} • Nasc.: ${patient.birthDate ? formatDate(patient.birthDate) : 'N/A'} • ${patient.gender || 'N/A'}`);
       doc.setDrawColor(220);
       doc.line(margin, cursorY - 4, 200 - margin, cursorY - 4);
-      addBlock(`Histórico Médico:\n${patient.medicalHistory}`);
-      doc.setDrawColor(220);
-      doc.line(margin, cursorY - 6, 200 - margin, cursorY - 6);
-      patient.sessions.forEach((s, idx) => {
+      
+      // Histórico Médico foi removido do schema
+      
+      sessions.forEach((s: SessionWithNote, idx: number) => {
         doc.setFont('helvetica', 'bold');
         doc.text(`\nSessão ${idx + 1} — ${formatDate(s.date)} ${formatTime(s.date)}`, margin, cursorY);
         cursorY += 10;
@@ -501,6 +513,41 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
       <h4 className="text-base font-semibold text-[#0F172A]">{title}</h4>
     </div>
   );
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#EEF2FF] via-[#FFFFFF] to-[#F8FAFF] flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-[#4F46E5] mx-auto mb-4" />
+          <p className="text-lg font-medium text-[#475569]">Carregando prontuário...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !recordData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#EEF2FF] via-[#FFFFFF] to-[#F8FAFF] flex items-center justify-center px-6">
+        <div className="max-w-md text-center">
+          <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-[#0F172A] mb-2">Erro ao carregar prontuário</h2>
+          <p className="text-[#475569] mb-6">{error || 'Não foi possível carregar os dados do paciente'}</p>
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#4F46E5] to-[#6366F1] px-6 py-3 text-white font-semibold hover:-translate-y-0.5 transition-transform"
+          >
+            <ArrowLeft className="h-5 w-5" />
+            Voltar para pacientes
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Destructure data for easier access
+  const { patient, statistics, sessions } = recordData;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#EEF2FF] via-[#FFFFFF] to-[#F8FAFF] px-6 py-8">
@@ -538,7 +585,12 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                 {summarizingHistory ? (
                   <>
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#4F46E5] border-t-transparent" />
-                    Resumindo...
+                    Gerando resumo...
+                  </>
+                ) : historySummary ? (
+                  <>
+                    <RefreshCw className="h-4 w-4" />
+                    Atualizar resumo
                   </>
                 ) : (
                   <>
@@ -568,7 +620,7 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
               <div>
                 <h1 className="text-3xl font-bold text-[#0F172A]">{patient.name}</h1>
                 <p className="mt-1 text-sm text-[#475569]">
-                  {calculateAge(patient.birthDate)} anos • {patient.gender}
+                  {patient.birthDate && `${calculateAge(patient.birthDate)} anos`} {patient.gender && `• ${patient.gender}`}
                 </p>
               </div>
             </div>
@@ -579,7 +631,7 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
               </div>
               <div className="inline-flex items-center gap-2 rounded-full bg-[#DCFCE7] px-4 py-2 text-sm font-semibold text-[#047857]">
                 <Activity className="h-4 w-4" />
-                {patient.totalSessions} sessões
+                {statistics.totalSessions} sessões
               </div>
             </div>
           </div>
@@ -605,11 +657,11 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
               <div className="mt-3 space-y-2 text-sm text-[#1E293B]">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-[#C026D3]" />
-                  <span>{formatDate(patient.birthDate)}</span>
+                  <span>{patient.birthDate ? formatDate(patient.birthDate) : 'Não informado'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-[#C026D3]" />
-                  <span>{patient.cpf}</span>
+                  <span>{patient.cpf || 'Não informado'}</span>
                 </div>
               </div>
             </div>
@@ -630,30 +682,103 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
             </div>
           </div>
 
-          {/* Medical History with AI Summary */}
-          {patient.medicalHistory && (
+          {/* History Summary */}
+          {historySummary && (
             <div className="mt-6 pt-6 border-t border-white/60">
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-[#94A3B8]">
-                  Histórico Médico
-                </h3>
-                {aiSummary && (
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-[#94A3B8]">
+                    Resumo Clínico do Histórico
+                  </h3>
+                  {historySummary.isPinned && (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FEF3C7] px-2.5 py-0.5 text-xs font-semibold text-[#92400E]">
+                      <Pin className="h-3 w-3" />
+                      Fixado
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
                   <span className="inline-flex items-center gap-2 rounded-full bg-[#F5F3FF] px-3 py-1 text-xs font-medium text-[#6D28D9]">
                     <Sparkles className="h-3.5 w-3.5" />
-                    Resumo disponível
+                    Gerado por IA
                   </span>
-                )}
-              </div>
-              <p className="text-sm leading-relaxed text-[#334155]">{patient.medicalHistory}</p>
-              {aiSummary && (
-                <div className="mt-4 rounded-2xl border border-[#DDD6FE] bg-[#F5F3FF]/80 p-4 shadow-inner">
-                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#6D28D9]">Resumo Inteligente</div>
-                  <p className="text-sm text-[#4338CA] whitespace-pre-wrap">{aiSummary}</p>
+                  <button
+                    onClick={handleTogglePin}
+                    className="rounded-full border border-[#E0E7FF] bg-white px-3 py-1.5 text-xs font-medium text-[#4F46E5] transition-all hover:bg-[#EEF2FF]"
+                    title={historySummary.isPinned ? 'Desfixar resumo' : 'Fixar resumo no topo'}
+                  >
+                    {historySummary.isPinned ? (
+                      <>
+                        <PinOff className="h-3.5 w-3.5 inline mr-1" />
+                        Desfixar
+                      </>
+                    ) : (
+                      <>
+                        <Pin className="h-3.5 w-3.5 inline mr-1" />
+                        Fixar
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleDeleteSummary}
+                    className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition-all hover:bg-red-50"
+                    title="Excluir resumo"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 inline mr-1" />
+                    Excluir
+                  </button>
                 </div>
-              )}
+              </div>
+              <div className="rounded-2xl border border-[#DDD6FE] bg-gradient-to-br from-[#F5F3FF] to-white p-6 shadow-[0_16px_35px_-24px_rgba(109,40,217,0.45)]">
+                <div 
+                  className="prose prose-sm max-w-none text-[#4338CA]"
+                  dangerouslySetInnerHTML={{ 
+                    __html: historySummary.content
+                      .replace(/\n/g, '<br />')
+                      .replace(/##\s+(.+)/g, '<h3 class="text-base font-bold text-[#4F46E5] mt-4 mb-2 first:mt-0">$1</h3>')
+                      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/- (.+)/g, '<li class="ml-4">$1</li>')
+                  }}
+                />
+                <div className="mt-4 pt-4 border-t border-[#DDD6FE]/50 flex items-center justify-between text-xs text-[#94A3B8]">
+                  <span>
+                    Baseado em {historySummary.sessionsIds.length} {historySummary.sessionsIds.length === 1 ? 'sessão' : 'sessões'}
+                  </span>
+                  <span>
+                    Atualizado em {new Date(historySummary.updatedAt).toLocaleDateString('pt-BR')}
+                  </span>
+                </div>
+              </div>
             </div>
           )}
         </div>
+
+        {/* Pinned Summary (if pinned, show at top of history) */}
+        {historySummary?.isPinned && (
+          <div className="rounded-[32px] border-2 border-[#FEF3C7] bg-gradient-to-br from-[#FFFBEB] to-white p-6 shadow-[0_28px_65px_-46px_rgba(146,64,14,0.35)]">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#F59E0B] to-[#D97706] shadow-[0_8px_20px_-8px_rgba(245,158,11,0.6)]">
+                  <Pin className="h-4 w-4 text-white" />
+                </div>
+                <h3 className="text-sm font-bold text-[#92400E]">Resumo Fixado</h3>
+              </div>
+              <span className="text-xs text-[#92400E]/60">
+                {historySummary.sessionsIds.length} {historySummary.sessionsIds.length === 1 ? 'sessão' : 'sessões'}
+              </span>
+            </div>
+            <div 
+              className="prose prose-sm max-w-none text-[#78350F]"
+              dangerouslySetInnerHTML={{ 
+                __html: historySummary.content
+                  .replace(/\n/g, '<br />')
+                  .replace(/##\s+(.+)/g, '<h4 class="text-sm font-bold text-[#92400E] mt-3 mb-1.5 first:mt-0">$1</h4>')
+                  .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                  .replace(/- (.+)/g, '<li class="ml-4 text-sm">$1</li>')
+              }}
+            />
+          </div>
+        )}
 
         {/* Session Notes */}
         <div className="rounded-[32px] border border-white/70 bg-white/95 p-8 shadow-[0_28px_65px_-46px_rgba(15,23,42,0.28)]">
@@ -663,15 +788,16 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
               Histórico de Sessões
             </h2>
             <span className="inline-flex items-center gap-2 rounded-full border border-[#E0E7FF] bg-[#F8FAFF] px-4 py-1.5 text-sm font-medium text-[#475569]">
-              {patient.sessions.length} {patient.sessions.length === 1 ? 'registro' : 'registros'}
+              {sessions.length} {sessions.length === 1 ? 'registro' : 'registros'}
             </span>
           </div>
 
           {/* Sessions Timeline */}
           <div className="space-y-5">
-            {patient.sessions.slice(0, visibleCount).map((session, index) => {
+            {sessions.slice(0, visibleCount).map((session: SessionWithNote, index: number) => {
               const isExpanded = expandedNotes.has(session.id);
               const isFirst = index === 0;
+              const noteContent = session.note?.content;
 
               return (
                 <div
@@ -718,7 +844,7 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                             <span>{formatTime(session.date)}</span>
                           </span>
                           <span>•</span>
-                          <span>{session.duration} minutos</span>
+                          <span>{session.durationMin || 'N/A'} minutos</span>
                         </div>
                       </div>
                     </div>
@@ -742,7 +868,7 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                   </div>
 
                   {/* Full Note Details */}
-                  {isExpanded && (
+                  {isExpanded && noteContent && (
                     <div id={`session-${session.id}-details`} className="border-t border-[#E2E8F0] px-6 py-6 animate-fade-in space-y-6">
                       {/* Resumo Executivo */}
                       <div>
@@ -753,20 +879,20 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                               <AlertCircle className="h-5 w-5 flex-shrink-0 text-[#4F46E5]" />
                               <div>
                                 <div className="mb-1 text-sm font-semibold text-[#1E293B]">Queixa principal</div>
-                                <p className="text-sm leading-relaxed text-[#475569]">{session.resumoExecutivo.queixaPrincipal}</p>
+                                <p className="text-sm leading-relaxed text-[#475569]">{noteContent.resumoExecutivo?.queixaPrincipal || 'Não informado'}</p>
                               </div>
                             </div>
                           </div>
                           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <div className="rounded-2xl bg-gradient-to-br from-[#FEE2E2] to-[#FECACA] p-4 text-[#7F1D1D] shadow-[0_16px_35px_-28px_rgba(248,113,113,0.45)]">
                               <div className="text-xs font-semibold uppercase tracking-[0.18em]">Nível de dor (EVA)</div>
-                              <div className="mt-2 text-3xl font-bold">{session.resumoExecutivo.nivelDor}/10</div>
+                              <div className="mt-2 text-3xl font-bold">{noteContent.resumoExecutivo?.nivelDor || 'N/A'}/10</div>
                             </div>
                             <div className="rounded-2xl bg-gradient-to-br from-[#DCFCE7] to-[#BBF7D0] p-4 text-[#047857] shadow-[0_16px_35px_-28px_rgba(34,197,94,0.45)]">
                               <div className="text-xs font-semibold uppercase tracking-[0.18em]">Evolução</div>
                               <div className="mt-2 flex items-center gap-2 text-sm font-semibold">
                                 <TrendingUp className="h-5 w-5" />
-                                {session.resumoExecutivo.evolucao}
+                                {noteContent.resumoExecutivo?.evolucao || 'Não informado'}
                               </div>
                             </div>
                           </div>
@@ -779,19 +905,19 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                         <div className="space-y-3 text-sm">
                           <div className="rounded-2xl border border-[#DDD6FE] bg-[#F5F3FF]/80 p-4">
                             <h5 className="mb-1 text-sm font-semibold text-[#3730A3]">Histórico atual</h5>
-                            <p className="leading-relaxed text-[#4338CA]">{session.anamnese.historicoAtual}</p>
+                            <p className="leading-relaxed text-[#4338CA]">{noteContent.anamnese?.historicoAtual || 'Não informado'}</p>
                           </div>
                           <div className="rounded-2xl border border-[#DDD6FE] bg-white p-4 shadow-[0_12px_30px_-24px_rgba(129,140,248,0.35)]">
                             <h5 className="mb-1 text-sm font-semibold text-[#3730A3]">Antecedentes pessoais</h5>
-                            <p className="leading-relaxed text-[#4338CA]">{session.anamnese.antecedentesPessoais}</p>
+                            <p className="leading-relaxed text-[#4338CA]">{noteContent.anamnese?.antecedentesPessoais || 'Não informado'}</p>
                           </div>
                           <div className="rounded-2xl border border-[#E9D5FF] bg-[#FAF5FF] p-4">
                             <h5 className="mb-1 text-sm font-semibold text-[#6B21A8]">Medicamentos</h5>
-                            <p className="leading-relaxed text-[#6B21A8]">{session.anamnese.medicamentos}</p>
+                            <p className="leading-relaxed text-[#6B21A8]">{noteContent.anamnese?.medicamentos || 'Não informado'}</p>
                           </div>
                           <div className="rounded-2xl border border-[#C7D2FE] bg-[#EEF2FF] p-4">
                             <h5 className="mb-1 text-sm font-semibold text-[#1E3A8A]">Objetivos</h5>
-                            <p className="leading-relaxed text-[#1E3A8A]">{session.anamnese.objetivos}</p>
+                            <p className="leading-relaxed text-[#1E3A8A]">{noteContent.anamnese?.objetivos || 'Não informado'}</p>
                           </div>
                         </div>
                       </div>
@@ -802,13 +928,13 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                         <div className="space-y-4 text-sm">
                           <div className="rounded-2xl border border-[#FED7AA] bg-gradient-to-br from-[#FFF7ED] to-[#FFE4D6] p-4">
                             <div className="mb-1 text-sm font-semibold text-[#9A3412]">Diagnóstico principal</div>
-                            <p className="leading-relaxed text-[#7C2D12]">{session.diagnosticoFisioterapeutico.principal}</p>
+                            <p className="leading-relaxed text-[#7C2D12]">{noteContent.diagnosticoFisioterapeutico?.principal || 'Não informado'}</p>
                           </div>
-                          {session.diagnosticoFisioterapeutico.secundario.length > 0 && (
+                          {(noteContent.diagnosticoFisioterapeutico?.secundarios?.length || 0) > 0 && (
                             <div className="rounded-2xl border border-[#FED7AA] bg-white/90 p-4 shadow-[0_12px_30px_-24px_rgba(251,191,36,0.35)]">
                               <h5 className="mb-2 text-sm font-semibold text-[#9A3412]">Diagnósticos secundários</h5>
                               <ul className="space-y-1">
-                                {session.diagnosticoFisioterapeutico.secundario.map((diag, idx) => (
+                                {noteContent.diagnosticoFisioterapeutico!.secundarios!.map((diag: string, idx: number) => (
                                   <li key={idx} className="flex items-start gap-2 text-[#7C2D12]">
                                     <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[#FB923C]"></span>
                                     <span>{diag}</span>
@@ -819,7 +945,7 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                           )}
                           <div className="rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-4">
                             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[#64748B]">CIF</div>
-                            <p className="mt-1 text-base font-medium text-[#0F172A]">{session.diagnosticoFisioterapeutico.cif}</p>
+                            <p className="mt-1 text-base font-medium text-[#0F172A]">{noteContent.diagnosticoFisioterapeutico?.cif || 'Não informado'}</p>
                           </div>
                         </div>
                       </div>
@@ -828,14 +954,14 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                       <div>
                         <SectionHeader icon={Activity} title="Intervenções Realizadas" color="bg-[#0EA5E9]" />
                         <div className="space-y-4 text-sm">
-                          {session.intervencoes.tecnicasManuais.length > 0 && (
+                          {(noteContent.intervencoes?.tecnicasManuais?.length || 0) > 0 && (
                             <div className="rounded-2xl border border-[#BAE6FD] bg-[#F0F9FF] p-4">
                               <h5 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#0369A1]">
                                 <span className="h-2 w-2 rounded-full bg-[#0EA5E9]"></span>
                                 Técnicas manuais
                               </h5>
                               <ul className="flex flex-wrap gap-2">
-                                {session.intervencoes.tecnicasManuais.map((tecnica, idx) => (
+                                {noteContent.intervencoes!.tecnicasManuais!.map((tecnica: string, idx: number) => (
                                   <li key={idx} className="rounded-full bg-white/80 px-3 py-1 text-[#0F172A] shadow-sm">
                                     {tecnica}
                                   </li>
@@ -843,14 +969,14 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                               </ul>
                             </div>
                           )}
-                          {session.intervencoes.exerciciosTerapeuticos.length > 0 && (
+                          {(noteContent.intervencoes?.exerciciosTerapeuticos?.length || 0) > 0 && (
                             <div className="rounded-2xl border border-[#BBF7D0] bg-[#ECFDF5] p-4">
                               <h5 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#047857]">
                                 <span className="h-2 w-2 rounded-full bg-[#10B981]"></span>
                                 Exercícios terapêuticos
                               </h5>
                               <ul className="flex flex-wrap gap-2">
-                                {session.intervencoes.exerciciosTerapeuticos.map((exercicio, idx) => (
+                                {noteContent.intervencoes!.exerciciosTerapeuticos!.map((exercicio: string, idx: number) => (
                                   <li key={idx} className="rounded-full bg-white/80 px-3 py-1 text-[#065F46] shadow-sm">
                                     {exercicio}
                                   </li>
@@ -858,14 +984,14 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                               </ul>
                             </div>
                           )}
-                          {session.intervencoes.recursosEletrotermofototerapeticos.length > 0 && (
+                          {(noteContent.intervencoes?.recursosEletrotermo?.length || 0) > 0 && (
                             <div className="rounded-2xl border border-[#E9D5FF] bg-[#FAF5FF] p-4">
                               <h5 className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#7C3AED]">
                                 <span className="h-2 w-2 rounded-full bg-[#8B5CF6]"></span>
                                 Recursos eletrotermofototerapêuticos
                               </h5>
                               <ul className="flex flex-wrap gap-2">
-                                {session.intervencoes.recursosEletrotermofototerapeticos.map((recurso, idx) => (
+                                {noteContent.intervencoes!.recursosEletrotermo!.map((recurso: string, idx: number) => (
                                   <li key={idx} className="rounded-full bg-white/80 px-3 py-1 text-[#5B21B6] shadow-sm">
                                     {recurso}
                                   </li>
@@ -882,15 +1008,15 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                         <div className="grid gap-3 sm:grid-cols-3">
                           <div className="rounded-2xl bg-gradient-to-br from-[#DCFCE7] to-[#BBF7D0] p-4 text-[#065F46] shadow-[0_16px_35px_-28px_rgba(34,197,94,0.4)]">
                             <h5 className="text-xs font-semibold uppercase tracking-[0.18em]">Resposta imediata</h5>
-                            <p className="mt-2 text-sm leading-relaxed">{session.respostaTratamento.imediata}</p>
+                            <p className="mt-2 text-sm leading-relaxed">{noteContent.respostaTratamento?.imediata || 'Não informado'}</p>
                           </div>
                           <div className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-4 text-[#7F1D1D]">
                             <h5 className="text-xs font-semibold uppercase tracking-[0.18em]">Efeitos adversos</h5>
-                            <p className="mt-2 text-sm leading-relaxed">{session.respostaTratamento.efeitos}</p>
+                            <p className="mt-2 text-sm leading-relaxed">{noteContent.respostaTratamento?.efeitos || 'Não informado'}</p>
                           </div>
                           <div className="rounded-2xl border border-[#C7D2FE] bg-white p-4 shadow-[0_12px_30px_-24px_rgba(59,130,246,0.35)] text-[#1E3A8A]">
                             <h5 className="text-xs font-semibold uppercase tracking-[0.18em]">Feedback</h5>
-                            <p className="mt-2 text-sm leading-relaxed">{session.respostaTratamento.feedback}</p>
+                            <p className="mt-2 text-sm leading-relaxed">{noteContent.respostaTratamento?.feedback || 'Não informado'}</p>
                           </div>
                         </div>
                       </div>
@@ -899,11 +1025,11 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                       <div>
                         <SectionHeader icon={Target} title="Orientações ao Paciente" color="bg-[#4F46E5]" />
                         <div className="grid gap-3 sm:grid-cols-3">
-                          {session.orientacoes.domiciliares.length > 0 && (
+                          {(noteContent.orientacoes?.domiciliares?.length || 0) > 0 && (
                             <div className="rounded-2xl border border-[#C7D2FE] bg-[#EEF2FF] p-4">
                               <h5 className="mb-2 text-sm font-semibold text-[#4338CA]">Domiciliares</h5>
                               <ul className="flex flex-col gap-2 text-sm text-[#3730A3]">
-                                {session.orientacoes.domiciliares.map((orientacao, idx) => (
+                                {noteContent.orientacoes!.domiciliares!.map((orientacao: string, idx: number) => (
                                   <li key={idx} className="rounded-full bg-white/80 px-3 py-1 shadow-sm">
                                     {orientacao}
                                   </li>
@@ -911,11 +1037,11 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                               </ul>
                             </div>
                           )}
-                          {session.orientacoes.ergonomicas.length > 0 && (
+                          {(noteContent.orientacoes?.ergonomicas?.length || 0) > 0 && (
                             <div className="rounded-2xl border border-[#FBCFE8] bg-[#FDF2F8] p-4">
                               <h5 className="mb-2 text-sm font-semibold text-[#BE185D]">Ergonômicas</h5>
                               <ul className="flex flex-col gap-2 text-sm text-[#9D174D]">
-                                {session.orientacoes.ergonomicas.map((orientacao, idx) => (
+                                {noteContent.orientacoes!.ergonomicas!.map((orientacao: string, idx: number) => (
                                   <li key={idx} className="rounded-full bg-white/80 px-3 py-1 shadow-sm">
                                     {orientacao}
                                   </li>
@@ -923,11 +1049,11 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                               </ul>
                             </div>
                           )}
-                          {session.orientacoes.precaucoes.length > 0 && (
+                          {(noteContent.orientacoes?.precaucoes?.length || 0) > 0 && (
                             <div className="rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] p-4">
                               <h5 className="mb-2 text-sm font-semibold text-[#B45309]">Precauções</h5>
                               <ul className="flex flex-col gap-2 text-sm text-[#92400E]">
-                                {session.orientacoes.precaucoes.map((orientacao, idx) => (
+                                {noteContent.orientacoes!.precaucoes!.map((orientacao: string, idx: number) => (
                                   <li key={idx} className="rounded-full bg-white/80 px-3 py-1 shadow-sm">
                                     {orientacao}
                                   </li>
@@ -945,18 +1071,18 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                           <div className="grid grid-cols-2 gap-3">
                             <div className="bg-teal-50 p-3 rounded-lg">
                               <div className="text-xs text-teal-600 font-medium mb-1">Frequência</div>
-                              <p className="text-sm text-[#333333]">{session.planoTratamento.frequencia}</p>
+                              <p className="text-sm text-[#333333]">{noteContent.planoTratamento?.frequencia || 'Não informado'}</p>
                             </div>
                             <div className="bg-teal-50 p-3 rounded-lg">
                               <div className="text-xs text-teal-600 font-medium mb-1">Duração Prevista</div>
-                              <p className="text-sm text-[#333333]">{session.planoTratamento.duracaoPrevista}</p>
+                              <p className="text-sm text-[#333333]">{noteContent.planoTratamento?.duracaoPrevista || 'Não informado'}</p>
                             </div>
                           </div>
-                          {session.planoTratamento.objetivosCurtoPrazo.length > 0 && (
+                          {(noteContent.planoTratamento?.objetivosCurtoPrazo?.length || 0) > 0 && (
                             <div>
                               <h5 className="font-medium text-[#333333] mb-2 text-sm">Objetivos de Curto Prazo</h5>
                               <ul className="space-y-1">
-                                {session.planoTratamento.objetivosCurtoPrazo.map((objetivo, idx) => (
+                                {noteContent.planoTratamento!.objetivosCurtoPrazo!.map((objetivo: string, idx: number) => (
                                   <li key={idx} className="flex items-start space-x-2 text-sm">
                                     <span className="w-5 h-5 bg-teal-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                                       {idx + 1}
@@ -967,11 +1093,11 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                               </ul>
                             </div>
                           )}
-                          {session.planoTratamento.objetivosLongoPrazo.length > 0 && (
+                          {(noteContent.planoTratamento?.objetivosLongoPrazo?.length || 0) > 0 && (
                             <div>
                               <h5 className="font-medium text-[#333333] mb-2 text-sm">Objetivos de Longo Prazo</h5>
                               <ul className="space-y-1">
-                                {session.planoTratamento.objetivosLongoPrazo.map((objetivo, idx) => (
+                                {noteContent.planoTratamento!.objetivosLongoPrazo!.map((objetivo: string, idx: number) => (
                                   <li key={idx} className="flex items-start space-x-2 text-sm">
                                     <span className="w-5 h-5 bg-teal-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
                                       {idx + 1}
@@ -982,11 +1108,11 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                               </ul>
                             </div>
                           )}
-                          {session.planoTratamento.criteriosAlta.length > 0 && (
+                          {(noteContent.planoTratamento?.criteriosAlta?.length || 0) > 0 && (
                             <div className="bg-gray-50 p-3 rounded-lg">
                               <h5 className="font-medium text-[#333333] mb-2 text-sm">Critérios de Alta</h5>
                               <ul className="space-y-1">
-                                {session.planoTratamento.criteriosAlta.map((criterio, idx) => (
+                                {noteContent.planoTratamento!.criteriosAlta!.map((criterio: string, idx: number) => (
                                   <li key={idx} className="flex items-start space-x-2 text-sm">
                                     <Check className="w-4 h-4 text-teal-600 flex-shrink-0 mt-0.5" />
                                     <span className="text-[#666666]">{criterio}</span>
@@ -1004,7 +1130,7 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                           <FileText className="w-4 h-4 text-[#5A9BCF]" />
                           <span>Observações Adicionais</span>
                         </h5>
-                        <p className="text-sm text-[#666666]">{session.observacoesAdicionais}</p>
+                        <p className="text-sm text-[#666666]">{noteContent.observacoesAdicionais || 'Nenhuma observação adicional registrada.'}</p>
                       </div>
 
                       {/* Próxima Sessão */}
@@ -1014,8 +1140,8 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                           <span>Próxima Sessão</span>
                         </h5>
                         <div className="space-y-1 text-sm">
-                          <p className="text-[#666666]"><strong>Retorno em:</strong> {session.proximaSessao.data}</p>
-                          <p className="text-[#666666]"><strong>Foco:</strong> {session.proximaSessao.foco}</p>
+                          <p className="text-[#666666]"><strong>Retorno em:</strong> {noteContent.proximaSessao?.data || 'Não definido'}</p>
+                          <p className="text-[#666666]"><strong>Foco:</strong> {noteContent.proximaSessao?.foco || 'Não definido'}</p>
                         </div>
                       </div>
                     </div>
@@ -1025,10 +1151,10 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
             })}
           </div>
 
-          {visibleCount < patient.sessions.length && (
+          {visibleCount < sessions.length && (
             <div className="mt-4 flex justify-center">
               <button
-                onClick={() => setVisibleCount((c) => Math.min(c + 5, patient.sessions.length))}
+                onClick={() => setVisibleCount((c) => Math.min(c + 5, sessions.length))}
                 className="px-4 py-2 text-sm font-medium text-[#5A9BCF] bg-[#5A9BCF]/10 hover:bg-[#5A9BCF]/20 rounded-lg transition-colors"
               >
                 Carregar mais
@@ -1036,7 +1162,7 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
             </div>
           )}
 
-          {patient.sessions.length === 0 && (
+          {sessions.length === 0 && (
             <div className="text-center py-12">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <FileText className="w-8 h-8 text-gray-400" />
@@ -1051,6 +1177,18 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
           )}
         </div>
       </div>
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={() => setAlertModal({ ...alertModal, isOpen: false })}
+        onConfirm={alertModal.onConfirm}
+        type={alertModal.type}
+        title={alertModal.title}
+        message={alertModal.message}
+        confirmText={alertModal.confirmText}
+        showCancel={alertModal.showCancel}
+      />
     </div>
   );
 };

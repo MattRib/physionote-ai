@@ -1,7 +1,5 @@
 'use client';
 
-'use client';
-
 import React from 'react';
 import {
   Calendar,
@@ -13,14 +11,9 @@ import {
   AlertCircle,
   Loader
 } from 'lucide-react';
+import { DashboardSession } from './types';
 
-interface SessionCardProps {
-  id: string;
-  session_datetime: string;
-  patient_name: string;
-  status: 'completed' | 'processing' | 'error';
-  is_anonymized: boolean;
-  duration_minutes?: number;
+interface SessionCardProps extends DashboardSession {
   delay?: number;
   onViewNote?: (sessionData: { id: string; patient_name: string; session_datetime: string; duration_minutes?: number }) => void;
 }
@@ -43,13 +36,26 @@ const STATUS_STYLES = {
     badgeText: 'text-[#B91C1C]',
     icon: AlertCircle,
     label: 'Erro'
+  },
+  recording: {
+    badgeBg: 'bg-[#DBEAFE]',
+    badgeText: 'text-[#1E40AF]',
+    icon: Loader,
+    label: 'Gravando'
+  },
+  transcribing: {
+    badgeBg: 'bg-[#FEF3C7]',
+    badgeText: 'text-[#92400E]',
+    icon: Loader,
+    label: 'Transcrevendo'
+  },
+  generating: {
+    badgeBg: 'bg-[#E0E7FF]',
+    badgeText: 'text-[#4338CA]',
+    icon: Loader,
+    label: 'Gerando nota'
   }
-} satisfies Record<SessionCardProps['status'], {
-  badgeBg: string;
-  badgeText: string;
-  icon: typeof ShieldCheck;
-  label: string;
-}>;
+} as const;
 
 const formatDateTime = (datetime: string) => {
   const date = new Date(datetime);
@@ -130,7 +136,12 @@ const SessionCard: React.FC<SessionCardProps> = ({
 
         <div className="mt-2 flex items-center gap-3 border-t border-[#E2E8F0]/70 pt-5">
           <button
-            onClick={() => onViewNote?.({ id, patient_name, session_datetime, duration_minutes })}
+            onClick={() => onViewNote?.({ 
+              id, 
+              patient_name, 
+              session_datetime, 
+              duration_minutes: duration_minutes ?? undefined 
+            })}
             disabled={!isCompleted}
             className={primaryButtonClasses}
           >

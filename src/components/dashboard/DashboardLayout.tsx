@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Plus, Menu, X, Activity } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Sidebar from './Sidebar';
@@ -12,43 +12,14 @@ import Pagination from './Pagination';
 import NewSessionFlow from './NewSessionFlow';
 import NoteViewModal from './NoteViewModal';
 import { Modal } from '@/components/common';
-
-// Mock data expandido - substituir com dados reais da API
-const generateMockSessions = () => {
-  const names = [
-    'Maria Silva', 'João Santos', 'Ana Costa', 'Pedro Oliveira', 'Carla Mendes',
-    'Lucas Ferreira', 'Juliana Souza', 'Roberto Alves', 'Patricia Lima', 'Fernando Dias',
-    'Amanda Rodrigues', 'Ricardo Martins', 'Beatriz Campos', 'Gustavo Pereira', 'Mariana Rocha',
-    'Carlos Eduardo', 'Fernanda Gomes', 'Rafael Barbosa', 'Camila Santos', 'Bruno Costa'
-  ];
-
-  const statuses: Array<'completed' | 'processing' | 'error'> = ['completed', 'processing', 'error'];
-  const sessions = [];
-
-  for (let i = 0; i < 50; i++) {
-    const daysAgo = Math.floor(i / 3);
-    const date = new Date();
-    date.setDate(date.getDate() - daysAgo);
-    date.setHours(9 + (i % 8), (i * 15) % 60, 0, 0);
-
-    sessions.push({
-      id: `session-${i + 1}`,
-      session_datetime: date.toISOString(),
-      patient_name: names[i % names.length],
-      status: i === 1 ? 'processing' : i === 3 ? 'error' : statuses[Math.floor(Math.random() * statuses.length)],
-      is_anonymized: true,
-      duration_minutes: 20 + (i % 4) * 15
-    });
-  }
-
-  return sessions;
-};
+import { DashboardSession } from './types';
 
 type ViewMode = 'grid' | 'list' | 'table';
 
 const DashboardLayout = () => {
   const router = useRouter();
-  const [allSessions] = useState(generateMockSessions());
+  const [allSessions, setAllSessions] = useState<DashboardSession[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isNewSessionModalOpen, setIsNewSessionModalOpen] = useState(false);
   const [noteModalData, setNoteModalData] = useState<{ id: string; patient_name: string; session_datetime: string; duration_minutes?: number } | null>(null);
@@ -61,54 +32,40 @@ const DashboardLayout = () => {
   const [itemsPerPage, setItemsPerPage] = useState(9);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Filter logic
-  const filteredSessions = useMemo(() => {
-    let filtered = [...allSessions];
+  // Fetch sessions from API
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Build query params
+        const params = new URLSearchParams();
+        if (statusFilter !== 'all') params.append('status', statusFilter);
+        if (dateFilter !== 'all') params.append('dateRange', dateFilter);
+        if (searchQuery) params.append('search', searchQuery);
 
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(session =>
-        session.patient_name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(session => session.status === statusFilter);
-    }
-
-    // Date filter
-    if (dateFilter !== 'all') {
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      
-      filtered = filtered.filter(session => {
-        const sessionDate = new Date(session.session_datetime);
-        const sessionDay = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate());
-
-        switch (dateFilter) {
-          case 'today':
-            return sessionDay.getTime() === today.getTime();
-          case 'yesterday':
-            const yesterday = new Date(today);
-            yesterday.setDate(yesterday.getDate() - 1);
-            return sessionDay.getTime() === yesterday.getTime();
-          case 'week':
-            const weekAgo = new Date(today);
-            weekAgo.setDate(weekAgo.getDate() - 7);
-            return sessionDay >= weekAgo;
-          case 'month':
-            const monthAgo = new Date(today);
-            monthAgo.setMonth(monthAgo.getMonth() - 1);
-            return sessionDay >= monthAgo;
-          default:
-            return true;
+        const response = await fetch(`/api/sessions?${params.toString()}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch sessions');
         }
-      });
-    }
 
-    return filtered;
-  }, [allSessions, searchQuery, statusFilter, dateFilter]);
+        const data = await response.json();
+        setAllSessions(data);
+      } catch (error) {
+        console.error('Error fetching sessions:', error);
+        setAllSessions([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSessions();
+  }, [statusFilter, dateFilter, searchQuery]);
+
+  // Filter logic - now done on server side, but kept for compatibility
+  const filteredSessions = useMemo(() => {
+    return allSessions;
+  }, [allSessions]);
 
   // Pagination logic
   const totalPages = Math.ceil(filteredSessions.length / itemsPerPage);
@@ -131,9 +88,10 @@ const DashboardLayout = () => {
   };
 
   const handleSessionCreated = () => {
-    // TODO: Adicionar nova sessão à lista
-    // TODO: Mostrar toast de sucesso
+    // Refresh sessions list after creating a new one
     setIsNewSessionModalOpen(false);
+    // Trigger re-fetch by changing a state that useEffect depends on
+    setStatusFilter(statusFilter); // This will trigger the useEffect
   };
 
   const handleViewNote = (sessionData: { id: string; patient_name: string; session_datetime: string; duration_minutes?: number }) => {
@@ -308,20 +266,56 @@ const DashboardLayout = () => {
               currentItemsPerPage={itemsPerPage}
             />
 
-            {/* Sessions Display */}
-            {viewMode === 'grid' && <SessionCards sessions={paginatedSessions} onViewNote={handleViewNote} />}
-            {viewMode === 'list' && <SessionListView sessions={paginatedSessions} />}
-            {viewMode === 'table' && <SessionTable sessions={paginatedSessions} />}
+            {/* Loading State */}
+            {isLoading && (
+              <div className="flex items-center justify-center py-20">
+                <div className="text-center">
+                  <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-[#4F46E5] border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]"></div>
+                  <p className="mt-4 text-sm font-medium text-[#64748B]">Carregando sessões...</p>
+                </div>
+              </div>
+            )}
 
-            {/* Pagination */}
-            {filteredSessions.length > 0 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                totalItems={filteredSessions.length}
-                itemsPerPage={itemsPerPage}
-                onPageChange={handlePageChange}
-              />
+            {/* Empty State */}
+            {!isLoading && filteredSessions.length === 0 && (
+              <div className="rounded-[26px] border border-white/70 bg-white/95 px-8 py-16 text-center shadow-[0_20px_45px_-36px_rgba(15,23,42,0.35)]">
+                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#EEF2FF]">
+                  <Activity className="h-10 w-10 text-[#4F46E5]" />
+                </div>
+                <h3 className="mb-2 text-xl font-semibold text-[#0F172A]">
+                  Nenhuma sessão encontrada
+                </h3>
+                <p className="mb-6 text-sm text-[#64748B]">
+                  {searchQuery || statusFilter !== 'all' || dateFilter !== 'all'
+                    ? 'Tente ajustar os filtros ou criar uma nova sessão.'
+                    : 'Comece criando sua primeira sessão de atendimento.'}
+                </p>
+                <button
+                  onClick={handleNewSession}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#4F46E5] to-[#6366F1] px-6 py-3 text-sm font-semibold text-white shadow-[0_22px_45px_-28px_rgba(79,70,229,0.6)] transition-transform hover:-translate-y-0.5"
+                >
+                  <Plus className="h-5 w-5" />
+                  <span>Criar Primeira Sessão</span>
+                </button>
+              </div>
+            )}
+
+            {/* Sessions Display */}
+            {!isLoading && filteredSessions.length > 0 && (
+              <>
+                {viewMode === 'grid' && <SessionCards sessions={paginatedSessions} onViewNote={handleViewNote} />}
+                {viewMode === 'list' && <SessionListView sessions={paginatedSessions} />}
+                {viewMode === 'table' && <SessionTable sessions={paginatedSessions} />}
+
+                {/* Pagination */}
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={filteredSessions.length}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={handlePageChange}
+                />
+              </>
             )}
           </div>
         </div>

@@ -20,14 +20,65 @@ export async function GET(req: NextRequest) {
     const patientId = searchParams.get('patientId');
     const status = searchParams.get('status');
     const limit = searchParams.get('limit');
+    const dateRange = searchParams.get('dateRange');
+    const search = searchParams.get('search');
 
     // Construir filtros
     const where: any = {};
+    
     if (patientId) {
       where.patientId = patientId;
     }
-    if (status) {
+    
+    if (status && status !== 'all') {
       where.status = status;
+    }
+
+    // Date range filter
+    if (dateRange && dateRange !== 'all') {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      switch (dateRange) {
+        case 'today':
+          where.date = {
+            gte: today,
+            lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
+          };
+          break;
+        case 'yesterday':
+          const yesterday = new Date(today);
+          yesterday.setDate(yesterday.getDate() - 1);
+          where.date = {
+            gte: yesterday,
+            lt: today
+          };
+          break;
+        case 'week':
+          const weekAgo = new Date(today);
+          weekAgo.setDate(weekAgo.getDate() - 7);
+          where.date = {
+            gte: weekAgo
+          };
+          break;
+        case 'month':
+          const monthAgo = new Date(today);
+          monthAgo.setMonth(monthAgo.getMonth() - 1);
+          where.date = {
+            gte: monthAgo
+          };
+          break;
+      }
+    }
+
+    // Search filter (by patient name)
+    if (search && search.trim() !== '') {
+      where.patient = {
+        name: {
+          contains: search,
+          mode: 'insensitive'
+        }
+      };
     }
 
     // Buscar sessões com informações do paciente
@@ -50,11 +101,26 @@ export async function GET(req: NextRequest) {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { date: 'desc' },
       take: limit ? parseInt(limit) : undefined,
     });
 
-    return NextResponse.json(sessions);
+    // Transform data to match frontend expectations
+    const transformedSessions = sessions.map((session) => ({
+      id: session.id,
+      session_datetime: session.date.toISOString(),
+      patient_name: session.patient.name,
+      patient_id: session.patient.id,
+      patient_email: session.patient.email,
+      status: session.status,
+      is_anonymized: true, // TODO: Add isAnonymized field to schema if needed
+      duration_minutes: session.durationMin,
+      main_complaint: session.motivation || null,
+      note_id: session.note?.id || null,
+      note_status: null // Note model doesn't have status field
+    }));
+
+    return NextResponse.json(transformedSessions);
   } catch (error: any) {
     console.error('Error fetching sessions:', error);
     return NextResponse.json(

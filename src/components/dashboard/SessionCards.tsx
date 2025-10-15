@@ -2,18 +2,10 @@
 
 import React from 'react';
 import SessionCard from './SessionCard';
-
-interface Session {
-  id: string;
-  session_datetime: string;
-  patient_name: string;
-  status: 'completed' | 'processing' | 'error';
-  is_anonymized: boolean;
-  duration_minutes?: number;
-}
+import { DashboardSession } from './types';
 
 interface SessionCardsProps {
-  sessions: Session[];
+  sessions: DashboardSession[];
   onViewNote?: (sessionData: { id: string; patient_name: string; session_datetime: string; duration_minutes?: number }) => void;
 }
 

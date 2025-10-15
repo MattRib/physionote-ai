@@ -155,6 +155,11 @@ export async function DELETE(
     // Verificar se paciente existe
     const existingPatient = await prisma.patient.findUnique({
       where: { id },
+      include: {
+        sessions: {
+          select: { id: true },
+        },
+      },
     });
 
     if (!existingPatient) {
@@ -164,7 +169,19 @@ export async function DELETE(
       );
     }
 
-    // Deletar paciente (sessions serão deletadas em cascata)
+    // REGRA DE NEGÓCIO: Não permitir exclusão de pacientes com sessões registradas
+    if (existingPatient.sessions.length > 0) {
+      return NextResponse.json(
+        { 
+          error: 'Não é possível excluir paciente com sessões registradas',
+          message: `Este paciente possui ${existingPatient.sessions.length} ${existingPatient.sessions.length === 1 ? 'sessão registrada' : 'sessões registradas'} no prontuário. Para excluir o paciente, primeiro remova todas as sessões.`,
+          sessionsCount: existingPatient.sessions.length
+        },
+        { status: 400 }
+      );
+    }
+
+    // Deletar paciente (apenas se não tiver sessões)
     await prisma.patient.delete({
       where: { id },
     });

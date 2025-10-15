@@ -22,8 +22,52 @@ const PatientCreate = z.object({
 });
 
 export async function GET() {
-  const patients = await prisma.patient.findMany({ orderBy: { createdAt: 'desc' } });
-  return NextResponse.json(patients);
+  const patients = await prisma.patient.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: {
+      sessions: {
+        orderBy: { date: 'desc' },
+        take: 1,
+        select: {
+          date: true,
+        },
+      },
+    },
+  });
+
+  // Transformar dados para incluir totalSessions e lastSession
+  const patientsWithStats = await Promise.all(
+    patients.map(async (patient) => {
+      const totalSessions = await prisma.session.count({
+        where: { patientId: patient.id },
+      });
+
+      const lastSession = patient.sessions[0]?.date.toISOString() || null;
+
+      return {
+        id: patient.id,
+        name: patient.name,
+        email: patient.email,
+        phone: patient.phone,
+        cpf: patient.cpf,
+        birthDate: patient.birthDate,
+        gender: patient.gender,
+        street: patient.street,
+        number: patient.number,
+        complement: patient.complement,
+        neighborhood: patient.neighborhood,
+        city: patient.city,
+        state: patient.state,
+        zipCode: patient.zipCode,
+        createdAt: patient.createdAt,
+        updatedAt: patient.updatedAt,
+        totalSessions,
+        lastSession,
+      };
+    })
+  );
+
+  return NextResponse.json(patientsWithStats);
 }
 
 export async function POST(req: Request) {

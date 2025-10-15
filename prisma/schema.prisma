@@ -11,24 +11,25 @@ datasource db {
 }
 
 model Patient {
-  id           String    @id @default(cuid())
-  name         String
-  email        String?   @unique
-  phone        String?
-  cpf          String?   @unique
-  birthDate    DateTime?
-  gender       String?
+  id              String           @id @default(cuid())
+  name            String
+  email           String?          @unique
+  phone           String?
+  cpf             String?          @unique
+  birthDate       DateTime?
+  gender          String?
   // Address fields
-  street       String?
-  number       String?
-  complement   String?
-  neighborhood String?
-  city         String?
-  state        String?
-  zipCode      String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  sessions     Session[]
+  street          String?
+  number          String?
+  complement      String?
+  neighborhood    String?
+  city            String?
+  state           String?
+  zipCode         String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  sessions        Session[]
+  historySummary  HistorySummary?
 }
 
 model Session {
@@ -65,4 +66,16 @@ model Note {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   session      Session   @relation(fields: [sessionId], references: [id])
+}
+
+model HistorySummary {
+  id          String   @id @default(cuid())
+  patientId   String   @unique
+  content     String // Texto do resumo gerado pela IA
+  aiModel     String // Modelo usado (ex: "gpt-4o")
+  isPinned    Boolean  @default(false) // Se está fixado no histórico
+  sessionsIds String // IDs das sessões incluídas (JSON array)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  patient     Patient  @relation(fields: [patientId], references: [id])
 }

@@ -2,18 +2,10 @@
 
 import React from 'react';
 import { Calendar, User, Clock, FileText, Download, ShieldCheck, AlertCircle, Loader } from 'lucide-react';
-
-interface Session {
-  id: string;
-  session_datetime: string;
-  patient_name: string;
-  status: 'completed' | 'processing' | 'error';
-  is_anonymized: boolean;
-  duration_minutes?: number;
-}
+import { DashboardSession } from './types';
 
 interface SessionTableProps {
-  sessions: Session[];
+  sessions: DashboardSession[];
 }
 
 const SessionTable: React.FC<SessionTableProps> = ({ sessions }) => {
@@ -39,8 +31,29 @@ const SessionTable: React.FC<SessionTableProps> = ({ sessions }) => {
       bgColor: 'bg-red-50',
       label: 'Erro',
       icon: AlertCircle
+    },
+    recording: {
+      color: 'bg-blue-500',
+      textColor: 'text-blue-800',
+      bgColor: 'bg-blue-50',
+      label: 'Gravando',
+      icon: Loader
+    },
+    transcribing: {
+      color: 'bg-yellow-500',
+      textColor: 'text-yellow-800',
+      bgColor: 'bg-yellow-50',
+      label: 'Transcrevendo',
+      icon: Loader
+    },
+    generating: {
+      color: 'bg-indigo-500',
+      textColor: 'text-indigo-800',
+      bgColor: 'bg-indigo-50',
+      label: 'Gerando nota',
+      icon: Loader
     }
-  };
+  } as const;
 
   const formatDateTime = (datetime: string) => {
     const date = new Date(datetime);

@@ -5,8 +5,6 @@ import {
   Edit,
   Trash2,
   FileText,
-  Phone,
-  Mail,
   CalendarCheck,
   ClipboardList
 } from 'lucide-react';
@@ -82,19 +80,9 @@ const PatientsList: React.FC<PatientsListProps> = ({ patients, onEdit, onDelete 
 
           <div className="flex flex-1 flex-wrap items-center gap-3 md:justify-end">
             {renderBadge(
-              'bg-[#FEF3C7] text-[#B45309]',
-              <Phone className="h-4 w-4" />,
-              patient.phone || 'Sem telefone'
-            )}
-            {renderBadge(
-              'bg-[#FCE7F3] text-[#BE185D]',
-              <Mail className="h-4 w-4" />,
-              patient.email || 'Sem e-mail'
-            )}
-            {renderBadge(
               'bg-[#DBEAFE] text-[#1E3A8A]',
               <ClipboardList className="h-4 w-4" />,
-              patient.totalSessions ? `${patient.totalSessions} sessões` : 'Sem sessões'
+              patient.totalSessions ? `${patient.totalSessions} ${patient.totalSessions === 1 ? 'sessão' : 'sessões'}` : 'Sem sessões'
             )}
             {renderBadge(
               patient.lastSession ? 'bg-[#D1FAE5] text-[#047857]' : 'bg-[#E2E8F0] text-[#475569]',
@@ -120,8 +108,17 @@ const PatientsList: React.FC<PatientsListProps> = ({ patients, onEdit, onDelete 
             </button>
             <button
               onClick={() => onDelete(patient.id)}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FEF2F2] text-[#DC2626] transition-transform duration-200 hover:-translate-y-0.5 hover:bg-[#FEE2E2]"
-              title="Excluir"
+              disabled={patient.totalSessions > 0}
+              className={`flex h-10 w-10 items-center justify-center rounded-full transition-transform duration-200 ${
+                patient.totalSessions > 0
+                  ? 'cursor-not-allowed bg-gray-100 text-gray-400 opacity-50'
+                  : 'bg-[#FEF2F2] text-[#DC2626] hover:-translate-y-0.5 hover:bg-[#FEE2E2]'
+              }`}
+              title={
+                patient.totalSessions > 0
+                  ? `Não é possível excluir: ${patient.totalSessions} ${patient.totalSessions === 1 ? 'sessão registrada' : 'sessões registradas'}`
+                  : 'Excluir paciente'
+              }
             >
               <Trash2 className="h-5 w-5" />
             </button>

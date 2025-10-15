@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Filter } from 'lucide-react';
 import PatientsList from './PatientsList';
 import PatientModal from './PatientModal';
+import { AlertModal, AlertType } from '@/components/common';
 
 export interface Patient {
   id: string;
@@ -33,6 +34,45 @@ const PatientsView = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+  
+  // Alert modal states
+  const [alertModal, setAlertModal] = useState<{
+    isOpen: boolean;
+    type: AlertType;
+    title: string;
+    message: string;
+    onConfirm?: () => void;
+    confirmText?: string;
+    showCancel?: boolean;
+  }>({
+    isOpen: false,
+    type: 'info',
+    title: '',
+    message: '',
+  });
+
+  const showAlert = (
+    type: AlertType,
+    title: string,
+    message: string,
+    onConfirm?: () => void,
+    confirmText?: string,
+    showCancel?: boolean
+  ) => {
+    setAlertModal({
+      isOpen: true,
+      type,
+      title,
+      message,
+      onConfirm,
+      confirmText,
+      showCancel,
+    });
+  };
+
+  const closeAlert = () => {
+    setAlertModal({ ...alertModal, isOpen: false });
+  };
 
   // Buscar pacientes da API
   useEffect(() => {
@@ -78,30 +118,75 @@ const PatientsView = () => {
       setEditingPatient(fullPatientData);
       setIsModalOpen(true);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Erro ao carregar paciente');
+      showAlert(
+        'error',
+        'Erro ao Carregar Paciente',
+        err instanceof Error ? err.message : 'Erro ao carregar dados do paciente. Tente novamente.'
+      );
       console.error('Erro ao carregar paciente:', err);
     }
   };
 
   const handleDeletePatient = async (patientId: string) => {
-    if (!confirm('Tem certeza que deseja excluir este paciente?')) {
+    // Verificar se o paciente tem sessões antes de confirmar exclusão
+    const patient = patients.find(p => p.id === patientId);
+    
+    if (patient && patient.totalSessions > 0) {
+      showAlert(
+        'warning',
+        'Não é Possível Excluir',
+        `${patient.name} possui ${patient.totalSessions} ${patient.totalSessions === 1 ? 'sessão registrada' : 'sessões registradas'} no prontuário.\n\nPara excluir o paciente, primeiro remova todas as sessões do prontuário.`
+      );
       return;
     }
 
-    try {
-      const response = await fetch(`/api/patients/${patientId}`, {
-        method: 'DELETE'
-      });
+    // Mostrar modal de confirmação
+    showAlert(
+      'warning',
+      'Confirmar Exclusão',
+      `Tem certeza que deseja excluir ${patient?.name || 'este paciente'}?\n\nEsta ação não poderá ser desfeita.`,
+      async () => {
+        try {
+          const response = await fetch(`/api/patients/${patientId}`, {
+            method: 'DELETE'
+          });
 
-      if (!response.ok) {
-        throw new Error('Erro ao excluir paciente');
-      }
+          if (!response.ok) {
+            const errorData = await response.json();
+            
+            // Mostrar mensagem específica se houver sessões
+            if (errorData.sessionsCount) {
+              showAlert(
+                'warning',
+                'Não é Possível Excluir',
+                errorData.message
+              );
+              return;
+            }
+            
+            throw new Error(errorData.error || 'Erro ao excluir paciente');
+          }
 
-      setPatients(patients.filter(p => p.id !== patientId));
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Erro ao excluir paciente');
-      console.error('Erro ao excluir paciente:', err);
-    }
+          // Remover paciente da lista
+          setPatients(patients.filter(p => p.id !== patientId));
+          showAlert(
+            'success',
+            'Paciente Excluído',
+            'O paciente foi excluído com sucesso!'
+          );
+          
+        } catch (err) {
+          showAlert(
+            'error',
+            'Erro ao Excluir',
+            err instanceof Error ? err.message : 'Erro ao excluir paciente. Tente novamente.'
+          );
+          console.error('Erro ao excluir paciente:', err);
+        }
+      },
+      'Excluir',
+      true // showCancel
+    );
   };
 
   const handleSavePatient = async (patientData: Omit<Patient, 'id' | 'createdAt' | 'totalSessions'>) => {
@@ -158,8 +243,21 @@ const PatientsView = () => {
 
       setIsModalOpen(false);
       setEditingPatient(null);
+      
+      // Mostrar mensagem de sucesso
+      showAlert(
+        'success',
+        editingPatient ? 'Paciente Atualizado' : 'Paciente Criado',
+        editingPatient 
+          ? 'Os dados do paciente foram atualizados com sucesso!' 
+          : 'O novo paciente foi cadastrado com sucesso!'
+      );
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Erro ao salvar paciente');
+      showAlert(
+        'error',
+        'Erro ao Salvar',
+        err instanceof Error ? err.message : 'Erro ao salvar paciente. Tente novamente.'
+      );
       console.error('Erro ao salvar paciente:', err);
     }
   };
@@ -304,6 +402,18 @@ const PatientsView = () => {
           onSave={handleSavePatient}
         />
       )}
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={closeAlert}
+        onConfirm={alertModal.onConfirm}
+        type={alertModal.type}
+        title={alertModal.title}
+        message={alertModal.message}
+        confirmText={alertModal.confirmText}
+        showCancel={alertModal.showCancel}
+      />
     </div>
     </div>
     );
