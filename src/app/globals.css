@@ -581,6 +581,22 @@ select option[value=""] {
   text-shadow: 0 12px 32px rgba(15, 23, 42, 0.45);
 }
 
+/* Sidebar Animation - Slide in from left */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft 0.4s ease-out;
+}
+
 /* Hero v2 Translucent Animations */
 /* Accessibility: Reduce motion for sensitive users */
 @media (prefers-reduced-motion: reduce) {
@@ -597,7 +613,8 @@ select option[value=""] {
   .animate-fade-in-up,
   .animate-fade-in-up-delay,
   .animate-slide-down,
-  .animate-fade-in-item {
+  .animate-fade-in-item,
+  .animate-slide-in-left {
     animation: none !important;
   }
 }

@@ -198,115 +198,132 @@ const DashboardLayout = () => {
       <main className="lg:ml-64 min-h-screen">
         
         {/* Top Bar - Mobile Menu Button */}
-        <div className="lg:hidden fixed top-0 left-0 right-0 bg-white shadow-md z-30 px-4 py-3 flex items-center justify-between">
+        <div className="lg:hidden fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md shadow-md z-30 px-4 py-3 flex items-center justify-between">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-xl hover:bg-[#F8FAFC] transition-colors"
           >
             {sidebarOpen ? (
-              <X className="w-6 h-6 text-[#111827]" />
+              <X className="w-6 h-6 text-[#0F172A]" />
             ) : (
-              <Menu className="w-6 h-6 text-[#111827]" />
+              <Menu className="w-6 h-6 text-[#0F172A]" />
             )}
           </button>
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-[#4F46E5] rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-[#4F46E5] to-[#6366F1] rounded-lg flex items-center justify-center shadow-sm">
               <Activity className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-lg font-bold text-[#111827]">PhysioNote.AI</h1>
+            <h1 className="text-lg font-bold text-[#0F172A]">PhysioNote.AI</h1>
           </div>
           <div className="w-10" /> {/* Spacer for centering */}
         </div>
 
         {/* Content Area */}
-        <div className="p-6 lg:p-8 pt-20 lg:pt-8">
+        <div className="px-6 py-8 pt-20 lg:pt-8">
+          <div className="mx-auto max-w-7xl space-y-8">
           
-          {/* Header Section */}
-          <div className="mb-8 space-y-6">
-            
-            {/* Title and CTA */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="space-y-1">
-                <h1 className="text-3xl font-bold text-[#111827]">
-                  Minhas Sessões
-                </h1>
-                <p className="text-[#6B7280]">
-                  {filteredSessions.length} {filteredSessions.length === 1 ? 'sessão encontrada' : 'sessões encontradas'}
-                  {filteredSessions.length !== allSessions.length && (
-                    <span className="text-[#4F46E5]"> (filtrado de {allSessions.length})</span>
-                  )}
-                </p>
-              </div>
+            {/* Header Section */}
+            <div className="rounded-[32px] border border-white/60 bg-white/70 px-8 py-7 shadow-[0_25px_30px_-40px_rgba(79,70,229,0.45)] backdrop-blur-sm">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <span className="inline-flex items-center gap-2 rounded-full border border-[#C7D2FE] bg-[#EEF2FF] px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-[#4F46E5]">
+                    Dashboard
+                  </span>
+                  <h1 className="mt-4 text-3xl font-bold text-[#0F172A] lg:text-4xl">
+                    Minhas Sessões
+                  </h1>
+                  <p className="mt-2 max-w-xl text-sm text-[#64748B]">
+                    {filteredSessions.length} {filteredSessions.length === 1 ? 'sessão encontrada' : 'sessões encontradas'}
+                    {filteredSessions.length !== allSessions.length && (
+                      <span className="font-semibold text-[#4F46E5]"> (filtrado de {allSessions.length})</span>
+                    )}
+                  </p>
+                </div>
 
-              {/* New Session CTA */}
-              <button
-                onClick={handleNewSession}
-                className="flex items-center justify-center space-x-2
-                         px-6 py-3 text-white rounded-lg
-                         font-semibold
-                         btn-gradient-animated
-                         hover:scale-105
-                         transition-transform duration-300
-                         shadow-lg
-                         group"
-              >
-                <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-                <span>Nova Sessão</span>
-              </button>
+                {/* New Session CTA */}
+                <button
+                  onClick={handleNewSession}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#4F46E5] to-[#6366F1] px-6 py-3 text-sm font-semibold text-white shadow-[0_22px_45px_-28px_rgba(79,70,229,0.6)] transition-transform hover:-translate-y-0.5"
+                >
+                  <Plus className="h-5 w-5" />
+                  <span>Nova Sessão</span>
+                </button>
+              </div>
             </div>
 
             {/* Stats Summary */}
-            <div className="flex items-center flex-wrap gap-4 text-sm">
-              <div className="px-4 py-2 bg-white rounded-lg shadow-sm">
-                <span className="text-[#6B7280]">Concluídas: </span>
-                <span className="font-bold text-green-600">
-                  {allSessions.filter(s => s.status === 'completed').length}
-                </span>
-              </div>
-              <div className="px-4 py-2 bg-white rounded-lg shadow-sm">
-                <span className="text-[#6B7280]">Processando: </span>
-                <span className="font-bold text-amber-600">
-                  {allSessions.filter(s => s.status === 'processing').length}
-                </span>
-              </div>
-              {allSessions.filter(s => s.status === 'error').length > 0 && (
-                <div className="px-4 py-2 bg-white rounded-lg shadow-sm">
-                  <span className="text-[#6B7280]">Com Erro: </span>
-                  <span className="font-bold text-red-600">
-                    {allSessions.filter(s => s.status === 'error').length}
-                  </span>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+              <div className="rounded-[26px] border border-white/70 bg-white/95 px-6 py-5 shadow-[0_20px_45px_-36px_rgba(15,23,42,0.35)]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94A3B8]">Concluídas</p>
+                    <p className="mt-3 text-3xl font-semibold text-[#16A34A]">
+                      {allSessions.filter(s => s.status === 'completed').length}
+                    </p>
+                  </div>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#DCFCE7] text-2xl">
+                    ✓
+                  </div>
                 </div>
-              )}
+              </div>
+              
+              <div className="rounded-[26px] border border-white/70 bg-white/95 px-6 py-5 shadow-[0_20px_45px_-36px_rgba(234,179,8,0.35)]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94A3B8]">Processando</p>
+                    <p className="mt-3 text-3xl font-semibold text-[#B45309]">
+                      {allSessions.filter(s => s.status === 'processing').length}
+                    </p>
+                  </div>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#FEF3C7] text-2xl">
+                    ⏱️
+                  </div>
+                </div>
+              </div>
+              
+              <div className="rounded-[26px] border border-white/70 bg-white/95 px-6 py-5 shadow-[0_20px_45px_-36px_rgba(239,68,68,0.35)]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#94A3B8]">Com erro</p>
+                    <p className="mt-3 text-3xl font-semibold text-[#DC2626]">
+                      {allSessions.filter(s => s.status === 'error').length}
+                    </p>
+                  </div>
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#FEE2E2] text-2xl">
+                    ⚠️
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* Filter Bar */}
-          <FilterBar
-            totalSessions={allSessions.length}
-            onSearch={handleSearch}
-            onStatusFilter={handleStatusFilter}
-            onDateFilter={handleDateFilter}
-            onViewModeChange={handleViewModeChange}
-            onItemsPerPageChange={handleItemsPerPageChange}
-            currentViewMode={viewMode}
-            currentItemsPerPage={itemsPerPage}
-          />
-
-          {/* Sessions Display */}
-          {viewMode === 'grid' && <SessionCards sessions={paginatedSessions} onViewNote={handleViewNote} />}
-          {viewMode === 'list' && <SessionListView sessions={paginatedSessions} />}
-          {viewMode === 'table' && <SessionTable sessions={paginatedSessions} />}
-
-          {/* Pagination */}
-          {filteredSessions.length > 0 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={filteredSessions.length}
-              itemsPerPage={itemsPerPage}
-              onPageChange={handlePageChange}
+            {/* Filter Bar */}
+            <FilterBar
+              totalSessions={allSessions.length}
+              onSearch={handleSearch}
+              onStatusFilter={handleStatusFilter}
+              onDateFilter={handleDateFilter}
+              onViewModeChange={handleViewModeChange}
+              onItemsPerPageChange={handleItemsPerPageChange}
+              currentViewMode={viewMode}
+              currentItemsPerPage={itemsPerPage}
             />
-          )}
+
+            {/* Sessions Display */}
+            {viewMode === 'grid' && <SessionCards sessions={paginatedSessions} onViewNote={handleViewNote} />}
+            {viewMode === 'list' && <SessionListView sessions={paginatedSessions} />}
+            {viewMode === 'table' && <SessionTable sessions={paginatedSessions} />}
+
+            {/* Pagination */}
+            {filteredSessions.length > 0 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredSessions.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={handlePageChange}
+              />
+            )}
+          </div>
         </div>
       </main>
 

@@ -174,7 +174,7 @@ const PatientsView = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F1F5FF] via-[#FFFFFF] to-[#F8FAFF] px-6 py-8">
+    <div className="min-h-screen px-6 py-8">
       <div className="mx-auto max-w-7xl space-y-8">
         {/* Header */}
         <div className="rounded-[32px] border border-white/60 bg-white/70 px-8 py-7 shadow-[0_25px_60px_-40px_rgba(79,70,229,0.45)] backdrop-blur-sm">

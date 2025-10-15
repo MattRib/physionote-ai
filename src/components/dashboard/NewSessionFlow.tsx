@@ -1,27 +1,75 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   AlertTriangle,
-  ChevronRight,
   CheckCircle2,
+  ChevronRight,
   Info,
+  Loader2,
   Mic,
   Plus,
+  RefreshCcw,
   Search,
   ShieldCheck,
   Sparkles
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-interface NewSessionFlowProps {
-  onSuccess?: () => void;
-  onCancel?: () => void;
-  isModal?: boolean;
-}
+type PatientSessionStatus = 'Concluída' | 'Agendada' | 'Em andamento' | 'Pendente';
 
-type SessionStatus = 'Concluída' | 'Processando' | 'Erro';
+const statusBadgeStyles: Record<PatientSessionStatus, { bg: string; text: string }> = {
+  Concluída: { bg: 'bg-emerald-50', text: 'text-emerald-700' },
+  Agendada: { bg: 'bg-indigo-50', text: 'text-indigo-700' },
+  'Em andamento': { bg: 'bg-sky-50', text: 'text-sky-700' },
+  Pendente: { bg: 'bg-amber-50', text: 'text-amber-700' }
+};
+
+const AVATAR_COLORS = [
+  '#EEF2FF',
+  '#FCE7F3',
+  '#DBEAFE',
+  '#DCFCE7',
+  '#FFE4E6',
+  '#FEF3C7'
+];
+
+const SESSION_TYPES = [
+  'Avaliação inicial',
+  'Retorno',
+  'Teleconsulta',
+  'Acompanhamento',
+  'Reavaliação'
+];
+
+const SPECIALTIES = [
+  'Fisioterapia Ortopédica',
+  'Fisioterapia Neurológica',
+  'Fisioterapia Esportiva',
+  'Fisioterapia Respiratória',
+  'Pilates Clínico'
+];
+
+const MIN_MOTIVATION_LENGTH = 18;
+
+type ApiPatient = {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  birthDate?: string;
+  gender?: string;
+  createdAt: string;
+  totalSessions: number;
+  lastSession: string | null;
+};
+
+interface PatientSessionSummary {
+  date: string;
+  status: PatientSessionStatus;
+  duration?: string;
+}
 
 interface PatientSummary {
   id: string;
@@ -33,117 +81,150 @@ interface PatientSummary {
   primaryGoal: string;
   treatmentFocus: string;
   nextReview: string;
-  lastSession?: {
+  lastSession: {
     date: string;
-    duration: string;
-    status: SessionStatus;
-  };
-  recentSessions: Array<{
-    date: string;
-    status: SessionStatus;
-  }>;
+    duration?: string;
+    status: PatientSessionStatus;
+  } | null;
+  recentSessions: PatientSessionSummary[];
 }
 
-const MOCK_PATIENTS: PatientSummary[] = [
-  {
-    id: 'p1',
-    name: 'Maria Fernanda Souza',
-    initials: 'MF',
-    avatarColor: '#E0EAFF',
-    consentActive: true,
-    hasPendingData: false,
-    primaryGoal: 'Retomar rotina sem dores lombares',
-    treatmentFocus: 'Fortalecimento do core e mobilização lombar',
-    nextReview: '15/10/2025',
-    lastSession: {
-      date: '08/10/2025 • 16:00',
-      duration: '45 min',
-      status: 'Concluída'
-    },
-    recentSessions: [
-      { date: '08/10/2025', status: 'Concluída' },
-      { date: '01/10/2025', status: 'Concluída' },
-      { date: '24/09/2025', status: 'Processando' }
-    ]
-  },
-  {
-    id: 'p2',
-    name: 'João Pedro Carvalho',
-    initials: 'JP',
-    avatarColor: '#E9D5FF',
-    consentActive: true,
-    hasPendingData: true,
-    primaryGoal: 'Recuperar estabilidade de joelho pós-cirúrgico',
-    treatmentFocus: 'Reeducação proprioceptiva e fortalecimento',
-    nextReview: '18/10/2025',
-    lastSession: {
-      date: '03/10/2025 • 10:30',
-      duration: '50 min',
-      status: 'Processando'
-    },
-    recentSessions: [
-      { date: '03/10/2025', status: 'Processando' },
-      { date: '26/09/2025', status: 'Concluída' },
-      { date: '19/09/2025', status: 'Concluída' }
-    ]
-  },
-  {
-    id: 'p3',
-    name: 'Ana Luiza Melo',
-    initials: 'AL',
-    avatarColor: '#FDE7E9',
-    consentActive: false,
-    hasPendingData: false,
-    primaryGoal: 'Reduzir espasticidade em membro superior',
-    treatmentFocus: 'Terapia manual e treino funcional',
-    nextReview: '22/10/2025',
-    lastSession: {
-      date: '20/09/2025 • 15:15',
-      duration: '35 min',
-      status: 'Erro'
-    },
-    recentSessions: [
-      { date: '20/09/2025', status: 'Erro' },
-      { date: '13/09/2025', status: 'Concluída' },
-      { date: '06/09/2025', status: 'Concluída' }
-    ]
+interface NewSessionFlowProps {
+  onSuccess?: () => void;
+  onCancel?: () => void;
+  isModal?: boolean;
+}
+
+const getInitials = (name: string): string => {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((segment) => segment[0]?.toUpperCase() ?? '')
+    .join('');
+};
+
+const formatLastSession = (
+  isoDate: string | null | undefined
+): PatientSummary['lastSession'] => {
+  if (!isoDate) {
+    return null;
   }
-];
 
-const SESSION_TYPES = ['Avaliação', 'Evolução', 'Revisão'];
-const SPECIALTIES = [
-  'Ortopedia Funcional',
-  'Neurologia Adulto',
-  'Pediatria',
-  'Pélvica',
-  'Cardiorrespiratória',
-  'Esportiva'
-];
+  const dateObj = new Date(isoDate);
+  if (Number.isNaN(dateObj.getTime())) {
+    return null;
+  }
 
-const statusBadgeStyles: Record<SessionStatus, { bg: string; text: string }> = {
-  Concluída: { bg: 'bg-[#D1FADF]', text: 'text-[#166534]' },
-  Processando: { bg: 'bg-[#FEF3C7]', text: 'text-[#92400E]' },
-  Erro: { bg: 'bg-[#FEE2E2]', text: 'text-[#B91C1C]' }
+  const dateStr = dateObj.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+  const timeStr = dateObj.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  return {
+    date: `${dateStr} • ${timeStr}`,
+    duration: '—',
+    status: 'Concluída'
+  };
+};
+
+const buildPatientSummary = (patient: ApiPatient, index: number): PatientSummary => {
+  const lastSession = formatLastSession(patient.lastSession);
+  const nextReview = patient.lastSession
+    ? new Date(patient.lastSession).toLocaleDateString('pt-BR')
+    : 'Agendar';
+
+  const recentSessions = lastSession
+    ? [
+        {
+          date: lastSession.date.split(' • ')[0],
+          status: lastSession.status,
+          duration: lastSession.duration
+        }
+      ]
+    : [];
+
+  return {
+    id: patient.id,
+    name: patient.name,
+    initials: getInitials(patient.name) || patient.name.slice(0, 2).toUpperCase(),
+    avatarColor: AVATAR_COLORS[index % AVATAR_COLORS.length],
+    consentActive: true,
+    hasPendingData: false,
+    primaryGoal: 'Objetivo a definir com o paciente',
+    treatmentFocus: 'Personalizar plano terapêutico',
+    nextReview,
+    lastSession,
+    recentSessions
+  };
 };
 
 const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, isModal = false }) => {
   const router = useRouter();
   const [query, setQuery] = useState('');
+  const [patients, setPatients] = useState<PatientSummary[]>([]);
+  const [patientsLoading, setPatientsLoading] = useState(true);
+  const [patientsError, setPatientsError] = useState<string | null>(null);
   const [selectedPatient, setSelectedPatient] = useState<PatientSummary | null>(null);
   const [motivation, setMotivation] = useState('');
   const [sessionType, setSessionType] = useState<string>('');
   const [specialty, setSpecialty] = useState<string>('');
+  const [detailsTouched, setDetailsTouched] = useState({
+    sessionType: false,
+    specialty: false,
+    motivation: false
+  });
   const [notesTooltipVisible, setNotesTooltipVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  const loadPatients = useCallback(async () => {
+    try {
+      setPatientsLoading(true);
+      setPatientsError(null);
+      const response = await fetch('/api/patients');
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.error ?? 'Não foi possível carregar os pacientes.');
+      }
+
+      const data = (await response.json()) as ApiPatient[];
+      const summaries = data.map((patient, index) => buildPatientSummary(patient, index));
+
+      setPatients(summaries);
+    } catch (error: any) {
+      setPatientsError(error?.message ?? 'Erro inesperado ao carregar pacientes.');
+      setPatients([]);
+    } finally {
+      setPatientsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadPatients();
+  }, [loadPatients]);
+
   const filteredPatients = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return MOCK_PATIENTS;
-    return MOCK_PATIENTS.filter((patient) => patient.name.toLowerCase().includes(normalized));
-  }, [query]);
+    if (!normalized) {
+      return patients;
+    }
+    return patients.filter((patient) => patient.name.toLowerCase().includes(normalized));
+  }, [patients, query]);
 
-  const patientNotFound = query.trim().length > 0 && filteredPatients.length === 0;
+  const sessionTypeValid = Boolean(sessionType);
+  const specialtyValid = Boolean(specialty);
+  const motivationLength = motivation.trim().length;
+  const motivationValid = motivationLength >= MIN_MOTIVATION_LENGTH;
+  const showSessionTypeError = detailsTouched.sessionType && !sessionTypeValid;
+  const showSpecialtyError = detailsTouched.specialty && !specialtyValid;
+  const showMotivationError = detailsTouched.motivation && !motivationValid;
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -154,10 +235,13 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
   const allChecksPassed = Boolean(
     selectedPatient &&
       selectedPatient.consentActive &&
-      !selectedPatient.hasPendingData
+      !selectedPatient.hasPendingData &&
+      sessionTypeValid &&
+      specialtyValid &&
+      motivationValid
   );
 
-  const handleStartSession = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleStartSession = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!selectedPatient) {
@@ -175,19 +259,48 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
       return;
     }
 
-    setIsSubmitting(true);
+    if (!sessionTypeValid || !specialtyValid || !motivationValid) {
+      setDetailsTouched({ sessionType: true, specialty: true, motivation: true });
+      setToastMessage('Preencha os detalhes da sessão antes de iniciar.');
+      return;
+    }
 
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setToastMessage(`Sessão iniciada com sucesso para ${selectedPatient.name}.`);
+    setIsSubmitting(true);
+    try {
+      const response = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          patientId: selectedPatient.id,
+          sessionType,
+          specialty,
+          motivation: motivation.trim()
+        })
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload?.error ?? 'Falha ao iniciar a sessão.');
+      }
+
+      const payload = (await response.json()) as { id: string };
+
       onSuccess?.();
       const params = new URLSearchParams({
+        sessionId: payload.id,
         patientId: selectedPatient.id,
         patientName: selectedPatient.name
       });
 
       router.push(`/dashboard/session?${params.toString()}`);
-    }, 900);
+    } catch (error: any) {
+      console.error('Failed to start session', error);
+      setToastMessage(error?.message ?? 'Não foi possível iniciar a sessão.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleCancel = () => {
@@ -243,7 +356,9 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-[#111827]">1. Selecionar Paciente</h2>
-              <p className="text-sm text-[#64748B]">Digite o nome completo para carregar os dados e revisar o histórico antes de iniciar.</p>
+              <p className="text-sm text-[#64748B]">
+                Digite o nome completo para carregar os dados e revisar o histórico antes de iniciar.
+              </p>
             </div>
             <button
               type="button"
@@ -271,13 +386,41 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
                 className="w-full rounded-2xl border border-[#E2E8F0] bg-white px-12 py-3 text-sm text-[#111827] shadow-[0_14px_30px_-24px_rgba(79,70,229,0.35)] transition-all placeholder:text-[#94A3B8] focus:border-[#6366F1] focus:shadow-[0_22px_45px_-28px_rgba(79,70,229,0.45)] focus:outline-none"
               />
             </div>
-            {query ? (
-              patientNotFound ? (
-                <p className="mt-2 text-xs font-medium text-[#DC2626]">
-                  Nenhum paciente encontrado com esse nome. Verifique a grafia ou cadastre um novo paciente.
-                </p>
+
+            <div className="mt-3 min-h-[3rem]">
+              {patientsLoading ? (
+                <div className="flex items-center gap-2 rounded-2xl border border-dashed border-[#C7D2FE] bg-[#EEF2FF] px-4 py-3 text-sm text-[#4F46E5]">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Carregando pacientes...
+                </div>
+              ) : patientsError ? (
+                <div className="flex flex-col gap-3 rounded-2xl border border-[#FCA5A5] bg-[#FEE2E2] px-4 py-3 text-sm text-[#B91C1C]">
+                  <span>{patientsError}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuery('');
+                      setSelectedPatient(null);
+                      void loadPatients();
+                    }}
+                    className="inline-flex w-max items-center gap-2 rounded-full border border-[#FCA5A5] px-3 py-1.5 text-xs font-semibold text-[#B91C1C] transition hover:bg-[#FEE2E2]/80"
+                  >
+                    <RefreshCcw className="h-3.5 w-3.5" />
+                    Tentar novamente
+                  </button>
+                </div>
+              ) : filteredPatients.length === 0 ? (
+                query.trim() ? (
+                  <p className="text-xs font-medium text-[#DC2626]">
+                    Nenhum paciente encontrado com esse nome. Verifique a grafia ou cadastre um novo paciente.
+                  </p>
+                ) : (
+                  <p className="text-xs font-medium text-[#64748B]">
+                    Nenhum paciente cadastrado ainda. Utilize o botão Novo Paciente para começar.
+                  </p>
+                )
               ) : (
-                <div className="mt-3 grid gap-2 rounded-2xl border border-[#E2E8F0] bg-white p-3">
+                <div className="grid gap-2 rounded-2xl border border-[#E2E8F0] bg-white p-3">
                   {filteredPatients.map((patient) => (
                     <button
                       key={patient.id}
@@ -303,7 +446,7 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
                           <span className="font-medium text-[#0F172A]">{patient.name}</span>
                           {patient.lastSession ? (
                             <span className="text-xs text-[#64748B]">
-                              Última sessão {patient.lastSession.date} — {patient.lastSession.duration}
+                              Última sessão {patient.lastSession.date}
                             </span>
                           ) : (
                             <span className="text-xs text-[#CBD5E1]">Sem histórico de sessões</span>
@@ -314,57 +457,55 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
                     </button>
                   ))}
                 </div>
-              )
-            ) : null}
+              )}
+            </div>
           </div>
 
           {selectedPatient ? (
-            <div className="animate-fade-in-up rounded-2xl border border-[#E0E7FF] bg-[#F8FAFF] p-5 shadow-inner">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div
-                    className="flex h-14 w-14 items-center justify-center rounded-2xl text-lg font-semibold text-[#0F172A]"
-                    style={{ backgroundColor: selectedPatient.avatarColor }}
-                  >
-                    {selectedPatient.initials}
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-[#0F172A]">{selectedPatient.name}</h3>
-                    {selectedPatient.lastSession ? (
-                      <p className="text-sm text-[#64748B]">
-                        Última sessão {selectedPatient.lastSession.date} · {selectedPatient.lastSession.duration}
-                      </p>
-                    ) : (
-                      <p className="text-sm text-[#CBD5E1]">Sem sessões registradas</p>
-                    )}
-                  </div>
+            <>
+              <div className="flex items-center gap-4">
+                <div
+                  className="flex h-14 w-14 items-center justify-center rounded-2xl text-lg font-semibold text-[#0F172A]"
+                  style={{ backgroundColor: selectedPatient.avatarColor }}
+                >
+                  {selectedPatient.initials}
                 </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  {selectedPatient.consentActive ? (
-                    <span className="inline-flex items-center gap-2 rounded-full bg-[#ECFDF5] px-3 py-1 text-xs font-semibold text-[#047857]">
-                      <ShieldCheck className="h-4 w-4" />
-                      LGPD ativo
-                    </span>
+                <div>
+                  <h3 className="text-lg font-semibold text-[#0F172A]">{selectedPatient.name}</h3>
+                  {selectedPatient.lastSession ? (
+                    <p className="text-sm text-[#64748B]">
+                      Última sessão {selectedPatient.lastSession.date} · {selectedPatient.lastSession.duration}
+                    </p>
                   ) : (
-                    <span className="inline-flex items-center gap-2 rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-semibold text-[#92400E]">
-                      <AlertTriangle className="h-4 w-4" />
-                      Sem consentimento
-                    </span>
-                  )}
-
-                  {selectedPatient.hasPendingData ? (
-                    <span className="inline-flex items-center gap-2 rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-semibold text-[#92400E]">
-                      <AlertCircle className="h-4 w-4" />
-                      Pendências cadastrais
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-2 rounded-full bg-[#EEF2FF] px-3 py-1 text-xs font-semibold text-[#3730A3]">
-                      <CheckCircle2 className="h-4 w-4" />
-                      Dados completos
-                    </span>
+                    <p className="text-sm text-[#CBD5E1]">Sem sessões registradas</p>
                   )}
                 </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {selectedPatient.consentActive ? (
+                  <span className="inline-flex items-center gap-2 rounded-full bg-[#ECFDF5] px-3 py-1 text-xs font-semibold text-[#047857]">
+                    <ShieldCheck className="h-4 w-4" />
+                    LGPD ativo
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2 rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-semibold text-[#92400E]">
+                    <AlertTriangle className="h-4 w-4" />
+                    Sem consentimento
+                  </span>
+                )}
+
+                {selectedPatient.hasPendingData ? (
+                  <span className="inline-flex items-center gap-2 rounded-full bg-[#FEF3C7] px-3 py-1 text-xs font-semibold text-[#92400E]">
+                    <AlertCircle className="h-4 w-4" />
+                    Pendências cadastrais
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2 rounded-full bg-[#EEF2FF] px-3 py-1 text-xs font-semibold text-[#3730A3]">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Dados completos
+                  </span>
+                )}
               </div>
 
               <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -395,22 +536,28 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
               </div>
 
               <div className="grid gap-3 md:grid-cols-3">
-                {selectedPatient.recentSessions.map((session) => {
-                  const styles = statusBadgeStyles[session.status];
-                  return (
-                    <div
-                      key={`${session.date}-${session.status}`}
-                      className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 shadow-sm"
-                    >
-                      <span className="block text-sm font-semibold text-[#0F172A]">{session.date}</span>
-                      <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${styles.bg} ${styles.text}`}>
-                        {session.status}
-                      </span>
-                    </div>
-                  );
-                })}
+                {selectedPatient.recentSessions.length > 0 ? (
+                  selectedPatient.recentSessions.map((session) => {
+                    const styles = statusBadgeStyles[session.status];
+                    return (
+                      <div
+                        key={`${session.date}-${session.status}`}
+                        className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 shadow-sm"
+                      >
+                        <span className="block text-sm font-semibold text-[#0F172A]">{session.date}</span>
+                        <span className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${styles.bg} ${styles.text}`}>
+                          {session.status}
+                        </span>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="rounded-xl border border-dashed border-[#E2E8F0] bg-white px-4 py-6 text-center text-sm text-[#94A3B8]">
+                    Nenhuma sessão registrada ainda.
+                  </div>
+                )}
               </div>
-            </div>
+            </>
           ) : null}
         </section>
 
@@ -444,8 +591,18 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
                 <select
                   id="sessionType"
                   value={sessionType}
-                  onChange={(event) => setSessionType(event.target.value)}
-                  className="w-full rounded-2xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#111827] focus:border-[#6366F1] focus:outline-none"
+                  onChange={(event) => {
+                    setSessionType(event.target.value);
+                    setDetailsTouched((prev) => ({ ...prev, sessionType: true }));
+                  }}
+                  onBlur={() =>
+                    setDetailsTouched((prev) => ({ ...prev, sessionType: true }))
+                  }
+                  className={`w-full rounded-2xl border bg-white px-4 py-3 text-sm text-[#111827] focus:outline-none ${
+                    showSessionTypeError
+                      ? 'border-[#FCA5A5] focus:border-[#EF4444]'
+                      : 'border-[#E2E8F0] focus:border-[#6366F1]'
+                  }`}
                 >
                   <option value="" className="text-[#94A3B8]">
                     Selecionar
@@ -456,6 +613,9 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
                     </option>
                   ))}
                 </select>
+                {showSessionTypeError ? (
+                  <p className="mt-1 text-xs text-[#DC2626]">Selecione o tipo de sessão.</p>
+                ) : null}
               </div>
 
               <div>
@@ -465,8 +625,18 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
                 <select
                   id="specialty"
                   value={specialty}
-                  onChange={(event) => setSpecialty(event.target.value)}
-                  className="w-full rounded-2xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#111827] focus:border-[#6366F1] focus:outline-none"
+                  onChange={(event) => {
+                    setSpecialty(event.target.value);
+                    setDetailsTouched((prev) => ({ ...prev, specialty: true }));
+                  }}
+                  onBlur={() =>
+                    setDetailsTouched((prev) => ({ ...prev, specialty: true }))
+                  }
+                  className={`w-full rounded-2xl border bg-white px-4 py-3 text-sm text-[#111827] focus:outline-none ${
+                    showSpecialtyError
+                      ? 'border-[#FCA5A5] focus:border-[#EF4444]'
+                      : 'border-[#E2E8F0] focus:border-[#6366F1]'
+                  }`}
                 >
                   <option value="" className="text-[#94A3B8]">
                     Selecione uma especialidade
@@ -477,6 +647,9 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
                     </option>
                   ))}
                 </select>
+                {showSpecialtyError ? (
+                  <p className="mt-1 text-xs text-[#DC2626]">Informe a especialidade desta sessão.</p>
+                ) : null}
               </div>
 
               <div className="md:col-span-2">
@@ -486,11 +659,35 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
                 <textarea
                   id="motivation"
                   value={motivation}
-                  onChange={(event) => setMotivation(event.target.value)}
+                  onChange={(event) => {
+                    setMotivation(event.target.value);
+                    setDetailsTouched((prev) => ({ ...prev, motivation: true }));
+                  }}
+                  onBlur={() =>
+                    setDetailsTouched((prev) => ({ ...prev, motivation: true }))
+                  }
                   rows={5}
                   placeholder="Ex.: Revisar exercícios de fortalecimento prescritos na última consulta, monitorar evolução da dor lombar..."
-                  className="w-full rounded-2xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm text-[#111827] transition-all focus:border-[#6366F1] focus:outline-none"
+                  className={`w-full rounded-2xl border bg-white px-4 py-3 text-sm text-[#111827] transition-all focus:outline-none ${
+                    showMotivationError
+                      ? 'border-[#FCA5A5] focus:border-[#EF4444]'
+                      : 'border-[#E2E8F0] focus:border-[#6366F1]'
+                  }`}
                 />
+                <div className="mt-1 flex items-center justify-between text-xs">
+                  <span className={showMotivationError ? 'text-[#DC2626]' : 'text-[#94A3B8]'}>
+                    {showMotivationError
+                      ? `Descreva com pelo menos ${MIN_MOTIVATION_LENGTH} caracteres.`
+                      : `Mínimo de ${MIN_MOTIVATION_LENGTH} caracteres para personalizar a nota.`}
+                  </span>
+                  <span
+                    className={`font-medium ${
+                      motivationValid ? 'text-[#6366F1]' : 'text-[#CBD5E1]'
+                    }`}
+                  >
+                    {motivationLength}
+                  </span>
+                </div>
               </div>
             </div>
           </section>
@@ -515,6 +712,11 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
               label="Dados cadastrais completos"
               success={Boolean(selectedPatient && !selectedPatient.hasPendingData)}
               warnMessage="Revise o cadastro do paciente antes de seguir"
+            />
+            <ChecklistItem
+              label="Detalhes da sessão preenchidos"
+              success={sessionTypeValid && specialtyValid && motivationValid}
+              warnMessage="Complete a etapa 2 para automatizar a nota"
             />
           </div>
 
