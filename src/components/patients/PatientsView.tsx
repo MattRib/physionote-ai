@@ -8,24 +8,22 @@ import PatientModal from './PatientModal';
 export interface Patient {
   id: string;
   name: string;
-  email?: string;        // Opcional (como no Prisma)
-  phone?: string;        // Opcional (como no Prisma)
-  cpf?: string;          // Campo extra (não existe no Prisma)
-  birthDate?: string;    // Opcional (como no Prisma)
-  gender?: string;       // Opcional (como no Prisma)
-  address?: {            // Campo extra (não existe no Prisma)
-    street: string;
-    number: string;
-    complement?: string;
-    neighborhood: string;
-    city: string;
-    state: string;
-    zipCode: string;
-  };
-  medicalHistory?: string; // Campo extra (não existe no Prisma)
+  email?: string;
+  phone?: string;
+  cpf?: string;
+  birthDate?: string;
+  gender?: string;
+  // Address fields
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
   createdAt: string;
-  lastSession?: string;    // Computed field
-  totalSessions: number;   // Computed field
+  lastSession?: string;
+  totalSessions: number;
 }
 
 const PatientsView = () => {

@@ -73,7 +73,7 @@ const Sidebar = () => {
               className={`group w-full flex items-center gap-3 px-4 py-3 rounded-[16px] font-semibold text-sm transition-colors duration-200 ${
                 isActive
                   ? 'bg-gradient-to-r from-[#4f46e5] to-[#6366f1] text-white shadow-[0_6px_15px_-8px_rgba(79,70,229,0.4)]'
-                  : 'text-[#475569] hover:bg-white/80 hover:shadow-[0_4px_12px_-6px_rgba(79,70,229,0.15)]'
+                  : 'text-[#475569] hover:bg-white/80'
               }`}
             >
               <Icon className="h-5 w-5 flex-shrink-0" />

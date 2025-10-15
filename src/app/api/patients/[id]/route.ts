@@ -7,8 +7,17 @@ const updatePatientSchema = z.object({
   name: z.string().min(1),
   email: z.string().email().optional(),
   phone: z.string().optional(),
+  cpf: z.string().optional(),
   birthDate: z.string().optional(),
   gender: z.string().optional(),
+  // Address fields
+  street: z.string().optional(),
+  number: z.string().optional(),
+  complement: z.string().optional(),
+  neighborhood: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zipCode: z.string().optional(),
 });
 
 // GET /api/patients/:id - Buscar paciente por ID
@@ -89,8 +98,16 @@ export async function PUT(
         name: validatedData.name,
         email: validatedData.email,
         phone: validatedData.phone,
+        cpf: validatedData.cpf,
         birthDate: validatedData.birthDate ? new Date(validatedData.birthDate) : undefined,
         gender: validatedData.gender,
+        street: validatedData.street,
+        number: validatedData.number,
+        complement: validatedData.complement,
+        neighborhood: validatedData.neighborhood,
+        city: validatedData.city,
+        state: validatedData.state,
+        zipCode: validatedData.zipCode,
       },
     });
 

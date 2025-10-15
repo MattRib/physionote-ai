@@ -21,16 +21,13 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
     cpf: '',
     birthDate: '',
     gender: 'feminino' as 'masculino' | 'feminino' | 'outro',
-    address: {
-      street: '',
-      number: '',
-      complement: '',
-      neighborhood: '',
-      city: '',
-      state: '',
-      zipCode: ''
-    },
-    medicalHistory: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: '',
+    zipCode: '',
     lastSession: ''
   });
 
@@ -51,27 +48,16 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
         name: patient.name || '',
         email: patient.email || '',
         phone: patient.phone || '',
-        cpf: patient.cpf || '', // Não existe no backend, será resetado
+        cpf: patient.cpf || '',
         birthDate: formattedBirthDate,
         gender: (patient.gender as 'masculino' | 'feminino' | 'outro') || 'feminino',
-        address: patient.address ? {
-          street: patient.address.street || '',
-          number: patient.address.number || '',
-          complement: patient.address.complement || '',
-          neighborhood: patient.address.neighborhood || '',
-          city: patient.address.city || '',
-          state: patient.address.state || '',
-          zipCode: patient.address.zipCode || ''
-        } : {
-          street: '',
-          number: '',
-          complement: '',
-          neighborhood: '',
-          city: '',
-          state: '',
-          zipCode: ''
-        },
-        medicalHistory: patient.medicalHistory || '', // Não existe no backend, será resetado
+        street: patient.street || '',
+        number: patient.number || '',
+        complement: patient.complement || '',
+        neighborhood: patient.neighborhood || '',
+        city: patient.city || '',
+        state: patient.state || '',
+        zipCode: patient.zipCode || '',
         lastSession: patient.lastSession || ''
       });
     } else {
@@ -83,16 +69,13 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
         cpf: '',
         birthDate: '',
         gender: 'feminino',
-        address: {
-          street: '',
-          number: '',
-          complement: '',
-          neighborhood: '',
-          city: '',
-          state: '',
-          zipCode: ''
-        },
-        medicalHistory: '',
+        street: '',
+        number: '',
+        complement: '',
+        neighborhood: '',
+        city: '',
+        state: '',
+        zipCode: '',
         lastSession: ''
       });
     }
@@ -100,26 +83,33 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    
+    // Enviar todos os campos do backend
+    const validData = {
+      name: formData.name,
+      email: formData.email || undefined,
+      phone: formData.phone || undefined,
+      cpf: formData.cpf || undefined,
+      birthDate: formData.birthDate || undefined,
+      gender: formData.gender || undefined,
+      street: formData.street || undefined,
+      number: formData.number || undefined,
+      complement: formData.complement || undefined,
+      neighborhood: formData.neighborhood || undefined,
+      city: formData.city || undefined,
+      state: formData.state || undefined,
+      zipCode: formData.zipCode || undefined,
+    };
+    
+    onSave(validData);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    if (name.startsWith('address.')) {
-      const addressField = name.split('.')[1];
-      setFormData({
-        ...formData,
-        address: {
-          ...formData.address,
-          [addressField]: value
-        }
-      });
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value
-      });
-    }
+    setFormData({
+      ...formData,
+      [name]: value
+    });
   };
 
   const formatCPF = (value: string) => {
@@ -305,13 +295,13 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                 </label>
                 <input
                   type="text"
-                  name="address.zipCode"
-                  value={formData.address.zipCode}
+                  name="zipCode"
+                  value={formData.zipCode}
                   onChange={(e) => {
                     const formatted = formatZipCode(e.target.value);
                     setFormData({
                       ...formData,
-                      address: { ...formData.address, zipCode: formatted }
+                      zipCode: formatted
                     });
                   }}
                   maxLength={9}
@@ -326,8 +316,8 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                 </label>
                 <input
                   type="text"
-                  name="address.street"
-                  value={formData.address.street}
+                  name="street"
+                  value={formData.street}
                   onChange={handleChange}
                   className={inputClassName}
                   placeholder="Nome da rua"
@@ -340,8 +330,8 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                 </label>
                 <input
                   type="text"
-                  name="address.number"
-                  value={formData.address.number}
+                  name="number"
+                  value={formData.number}
                   onChange={handleChange}
                   className={inputClassName}
                   placeholder="N°"
@@ -354,8 +344,8 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                 </label>
                 <input
                   type="text"
-                  name="address.complement"
-                  value={formData.address.complement}
+                  name="complement"
+                  value={formData.complement}
                   onChange={handleChange}
                   className={inputClassName}
                   placeholder="Apto, bloco, etc"
@@ -368,8 +358,8 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                 </label>
                 <input
                   type="text"
-                  name="address.neighborhood"
-                  value={formData.address.neighborhood}
+                  name="neighborhood"
+                  value={formData.neighborhood}
                   onChange={handleChange}
                   className={inputClassName}
                   placeholder="Nome do bairro"
@@ -382,8 +372,8 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                 </label>
                 <input
                   type="text"
-                  name="address.city"
-                  value={formData.address.city}
+                  name="city"
+                  value={formData.city}
                   onChange={handleChange}
                   className={inputClassName}
                   placeholder="Nome da cidade"
@@ -396,8 +386,8 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                 </label>
                 <input
                   type="text"
-                  name="address.state"
-                  value={formData.address.state}
+                  name="state"
+                  value={formData.state}
                   onChange={handleChange}
                   maxLength={2}
                   className={`${inputClassName} uppercase`}
@@ -405,22 +395,6 @@ const PatientModal: React.FC<PatientModalProps> = ({ patient, onClose, onSave })
                 />
               </div>
             </div>
-          </div>
-
-          {/* Histórico Médico */}
-          <div>
-            <h3 className="text-lg font-semibold text-[#111827] mb-4 flex items-center">
-              <FileText className="w-5 h-5 mr-2 text-[#4F46E5]" />
-              Histórico Médico
-            </h3>
-            <textarea
-              name="medicalHistory"
-              value={formData.medicalHistory}
-              onChange={handleChange}
-              rows={4}
-              className={`${inputClassName} resize-none`}
-              placeholder="Descreva o histórico médico relevante do paciente..."
-            />
           </div>
 
         </form>
