@@ -24,7 +24,10 @@ import {
   Pin,
   PinOff,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  Edit3,
+  Save,
+  X
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import AlertModal from '@/components/common/AlertModal';
@@ -155,6 +158,8 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
   const [summarizingHistory, setSummarizingHistory] = useState(false);
   const [historySummary, setHistorySummary] = useState<HistorySummary | null>(null);
+  const [isEditingResume, setIsEditingResume] = useState(false);
+  const [editedResumeContent, setEditedResumeContent] = useState('');
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
   const [visibleCount, setVisibleCount] = useState(5);
   const [alertModal, setAlertModal] = useState<{
@@ -355,6 +360,41 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
         }
       }
     });
+  };
+
+  const handleEditSummary = () => {
+    if (!historySummary) return;
+    setEditedResumeContent(historySummary.content);
+    setIsEditingResume(true);
+  };
+
+  const handleSaveEditedSummary = async () => {
+    if (!historySummary) return;
+
+    try {
+      const response = await fetch(`/api/patients/${patientId}/history-summary`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: editedResumeContent })
+      });
+
+      if (!response.ok) {
+        throw new Error('Falha ao salvar edição');
+      }
+
+      const data = await response.json();
+      setHistorySummary(data.summary);
+      setIsEditingResume(false);
+      showToast('success', 'Resumo atualizado com sucesso!');
+    } catch (e: any) {
+      console.error(e);
+      showToast('error', 'Erro ao salvar edição do resumo');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingResume(false);
+    setEditedResumeContent('');
   };
 
   const buildSessionText = (session: SessionWithNote) => {
@@ -682,97 +722,138 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
             </div>
           </div>
 
-          {/* History Summary */}
-          {historySummary && (
+          {/* History Summary - Only show if NOT pinned */}
+          {historySummary && !historySummary.isPinned && (
             <div className="mt-6 pt-6 border-t border-white/60">
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-[#94A3B8]">
                     Resumo Clínico do Histórico
                   </h3>
-                  {historySummary.isPinned && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#FEF3C7] px-2.5 py-0.5 text-xs font-semibold text-[#92400E]">
-                      <Pin className="h-3 w-3" />
-                      Fixado
-                    </span>
-                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center gap-2 rounded-full bg-[#F5F3FF] px-3 py-1 text-xs font-medium text-[#6D28D9]">
                     <Sparkles className="h-3.5 w-3.5" />
                     Gerado por IA
                   </span>
-                  <button
-                    onClick={handleTogglePin}
-                    className="rounded-full border border-[#E0E7FF] bg-white px-3 py-1.5 text-xs font-medium text-[#4F46E5] transition-all hover:bg-[#EEF2FF]"
-                    title={historySummary.isPinned ? 'Desfixar resumo' : 'Fixar resumo no topo'}
-                  >
-                    {historySummary.isPinned ? (
-                      <>
-                        <PinOff className="h-3.5 w-3.5 inline mr-1" />
-                        Desfixar
-                      </>
-                    ) : (
-                      <>
-                        <Pin className="h-3.5 w-3.5 inline mr-1" />
-                        Fixar
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={handleDeleteSummary}
-                    className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition-all hover:bg-red-50"
-                    title="Excluir resumo"
-                  >
-                    <Trash2 className="h-3.5 w-3.5 inline mr-1" />
-                    Excluir
-                  </button>
+                  {!isEditingResume && (
+                    <>
+                      <button
+                        onClick={handleEditSummary}
+                        className="rounded-full border border-[#E0E7FF] bg-white px-3 py-1.5 text-xs font-medium text-[#4F46E5] transition-all hover:bg-[#EEF2FF]"
+                        title="Editar resumo"
+                      >
+                        <Edit3 className="h-3.5 w-3.5 inline mr-1" />
+                        Editar
+                      </button>
+                      <button
+                        onClick={handleTogglePin}
+                        className="rounded-full border border-[#E0E7FF] bg-white px-3 py-1.5 text-xs font-medium text-[#4F46E5] transition-all hover:bg-[#EEF2FF]"
+                        title={historySummary.isPinned ? 'Desfixar resumo' : 'Fixar resumo no topo'}
+                      >
+                        {historySummary.isPinned ? (
+                          <>
+                            <PinOff className="h-3.5 w-3.5 inline mr-1" />
+                            Desfixar
+                          </>
+                        ) : (
+                          <>
+                            <Pin className="h-3.5 w-3.5 inline mr-1" />
+                            Fixar
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={handleDeleteSummary}
+                        className="rounded-full border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 transition-all hover:bg-red-50"
+                        title="Excluir resumo"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 inline mr-1" />
+                        Excluir
+                      </button>
+                    </>
+                  )}
+                  {isEditingResume && (
+                    <>
+                      <button
+                        onClick={handleSaveEditedSummary}
+                        className="rounded-full border border-green-200 bg-white px-3 py-1.5 text-xs font-medium text-green-600 transition-all hover:bg-green-50"
+                        title="Salvar edição"
+                      >
+                        <Save className="h-3.5 w-3.5 inline mr-1" />
+                        Salvar
+                      </button>
+                      <button
+                        onClick={handleCancelEdit}
+                        className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 transition-all hover:bg-gray-50"
+                        title="Cancelar edição"
+                      >
+                        <X className="h-3.5 w-3.5 inline mr-1" />
+                        Cancelar
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
-              <div className="rounded-2xl border border-[#DDD6FE] bg-gradient-to-br from-[#F5F3FF] to-white p-6 shadow-[0_16px_35px_-24px_rgba(109,40,217,0.45)]">
-                <div 
-                  className="prose prose-sm max-w-none text-[#4338CA]"
-                  dangerouslySetInnerHTML={{ 
-                    __html: historySummary.content
-                      .replace(/\n/g, '<br />')
-                      .replace(/##\s+(.+)/g, '<h3 class="text-base font-bold text-[#4F46E5] mt-4 mb-2 first:mt-0">$1</h3>')
-                      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-                      .replace(/- (.+)/g, '<li class="ml-4">$1</li>')
-                  }}
-                />
-                <div className="mt-4 pt-4 border-t border-[#DDD6FE]/50 flex items-center justify-between text-xs text-[#94A3B8]">
-                  <span>
-                    Baseado em {historySummary.sessionsIds.length} {historySummary.sessionsIds.length === 1 ? 'sessão' : 'sessões'}
-                  </span>
-                  <span>
-                    Atualizado em {new Date(historySummary.updatedAt).toLocaleDateString('pt-BR')}
-                  </span>
+              
+              {isEditingResume ? (
+                <div className="rounded-2xl border border-[#DDD6FE] bg-white p-4">
+                  <textarea
+                    value={editedResumeContent}
+                    onChange={(e) => setEditedResumeContent(e.target.value)}
+                    className="w-full min-h-[400px] p-4 text-sm text-[#4338CA] border border-[#E0E7FF] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent resize-y font-mono"
+                    placeholder="Edite o resumo aqui..."
+                  />
+                  <p className="mt-2 text-xs text-[#94A3B8]">
+                    💡 Dica: Use Markdown para formatar o texto (## para títulos, **negrito**, - para listas)
+                  </p>
                 </div>
-              </div>
+              ) : (
+                <div className="rounded-2xl border border-[#DDD6FE] bg-gradient-to-br from-[#F5F3FF] to-white p-6 shadow-[0_16px_35px_-24px_rgba(109,40,217,0.45)]">
+                  <div 
+                    className="prose prose-sm max-w-none text-[#4338CA]"
+                    dangerouslySetInnerHTML={{ 
+                      __html: historySummary.content
+                        .replace(/\n/g, '<br />')
+                        .replace(/##\s+(.+)/g, '<h3 class="text-base font-bold text-[#4F46E5] mt-4 mb-2 first:mt-0">$1</h3>')
+                        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/- (.+)/g, '<li class="ml-4">$1</li>')
+                    }}
+                  />
+                  <div className="mt-4 pt-4 border-t border-[#DDD6FE]/50 flex items-center justify-between text-xs text-[#94A3B8]">
+                    <span>
+                      Baseado em {historySummary.sessionsIds.length} {historySummary.sessionsIds.length === 1 ? 'sessão' : 'sessões'}
+                    </span>
+                    <span>
+                      Atualizado em {new Date(historySummary.updatedAt).toLocaleDateString('pt-BR')}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {/* Pinned Summary (if pinned, show at top of history) */}
-        {historySummary?.isPinned && (
-          <div className="rounded-[32px] border-2 border-[#FEF3C7] bg-gradient-to-br from-[#FFFBEB] to-white p-6 shadow-[0_28px_65px_-46px_rgba(146,64,14,0.35)]">
+        {historySummary?.isPinned && !isEditingResume && (
+          <div className="rounded-[32px] border-2 border-[#C7D2FE] bg-gradient-to-br from-[#EEF2FF] via-white to-[#F8FAFF] p-6 shadow-[0_28px_65px_-46px_rgba(79,70,229,0.35)]">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#F59E0B] to-[#D97706] shadow-[0_8px_20px_-8px_rgba(245,158,11,0.6)]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F46E5] to-[#6366F1] shadow-[0_8px_20px_-8px_rgba(79,70,229,0.6)]">
                   <Pin className="h-4 w-4 text-white" />
                 </div>
-                <h3 className="text-sm font-bold text-[#92400E]">Resumo Fixado</h3>
+                <h3 className="text-sm font-bold text-[#4F46E5]">Resumo Fixado</h3>
               </div>
-              <span className="text-xs text-[#92400E]/60">
+              <span className="text-xs text-[#94A3B8]">
                 {historySummary.sessionsIds.length} {historySummary.sessionsIds.length === 1 ? 'sessão' : 'sessões'}
               </span>
             </div>
             <div 
-              className="prose prose-sm max-w-none text-[#78350F]"
+              className="prose prose-sm max-w-none text-[#4338CA]"
               dangerouslySetInnerHTML={{ 
                 __html: historySummary.content
                   .replace(/\n/g, '<br />')
-                  .replace(/##\s+(.+)/g, '<h4 class="text-sm font-bold text-[#92400E] mt-3 mb-1.5 first:mt-0">$1</h4>')
+                  .replace(/##\s+(.+)/g, '<h4 class="text-sm font-bold text-[#4F46E5] mt-3 mb-1.5 first:mt-0">$1</h4>')
                   .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                   .replace(/- (.+)/g, '<li class="ml-4 text-sm">$1</li>')
               }}

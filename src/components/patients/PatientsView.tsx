@@ -285,10 +285,6 @@ const PatientsView = () => {
               </p>
             </div>
             <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-              <div className="rounded-2xl border border-[#E0E7FF] bg-white/90 px-5 py-3 text-center shadow-inner">
-                <p className="text-xs uppercase tracking-[0.18em] text-[#94A3B8]">Pacientes ativos</p>
-                <p className="text-2xl font-semibold text-[#4F46E5]">{patients.filter(p => p.lastSession).length}</p>
-              </div>
               <button
                 onClick={handleAddPatient}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#4F46E5] to-[#6366F1] px-6 py-3 text-sm font-semibold text-white shadow-[0_22px_45px_-28px_rgba(79,70,229,0.6)] transition-transform hover:-translate-y-0.5"

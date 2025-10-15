@@ -242,7 +242,7 @@ Crie um resumo clínico profissional seguindo esta estrutura:
   }
 }
 
-// PATCH - Fixar/Desfixar resumo
+// PATCH - Fixar/Desfixar resumo ou editar conteúdo
 export async function PATCH(
   request: NextRequest,
   props: { params: Promise<{ id: string }> }
@@ -251,18 +251,30 @@ export async function PATCH(
     const params = await props.params;
     const patientId = params.id;
     const body = await request.json();
-    const { isPinned } = body;
+    const { isPinned, content } = body;
 
-    if (typeof isPinned !== 'boolean') {
+    // Preparar dados para atualização
+    const updateData: any = {};
+
+    if (typeof isPinned === 'boolean') {
+      updateData.isPinned = isPinned;
+    }
+
+    if (typeof content === 'string') {
+      updateData.content = content;
+      updateData.updatedAt = new Date();
+    }
+
+    if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
-        { error: 'isPinned deve ser um boolean' },
+        { error: 'Nenhum campo válido para atualizar' },
         { status: 400 }
       );
     }
 
     const summary = await prisma.historySummary.update({
       where: { patientId },
-      data: { isPinned },
+      data: updateData,
     });
 
     return NextResponse.json({
