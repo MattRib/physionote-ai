@@ -133,10 +133,64 @@ export async function GET(req: NextRequest) {
 // POST /api/sessions - Criar nova sessão
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    
-    // Validar dados
-    const validatedData = SessionCreateSchema.parse(body);
+    const contentType = req.headers.get('content-type') || '';
+    let validatedData;
+    let audioFile: File | null = null;
+    let recordingMode: 'live' | 'upload' = 'live';
+
+    // Verificar se é FormData (upload de arquivo) ou JSON (gravação ao vivo)
+    if (contentType.includes('multipart/form-data')) {
+      // Processar FormData
+      const formData = await req.formData();
+      
+      const patientId = formData.get('patientId') as string;
+      const sessionType = formData.get('sessionType') as string;
+      const specialty = formData.get('specialty') as string;
+      const motivation = formData.get('motivation') as string;
+      recordingMode = (formData.get('recordingMode') as 'live' | 'upload') || 'upload';
+      audioFile = formData.get('audio') as File | null;
+
+      // Validar dados básicos
+      validatedData = SessionCreateSchema.parse({
+        patientId,
+        sessionType,
+        specialty,
+        motivation,
+      });
+
+      // Validar arquivo de áudio
+      if (!audioFile) {
+        return NextResponse.json(
+          { error: 'Arquivo de áudio é obrigatório para upload' },
+          { status: 400 }
+        );
+      }
+
+      // Validar tipo de arquivo
+      const acceptedTypes = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/m4a', 'audio/ogg', 'audio/webm'];
+      if (!acceptedTypes.includes(audioFile.type)) {
+        return NextResponse.json(
+          { error: 'Tipo de arquivo não suportado. Use MP3, WAV, M4A ou OGG.' },
+          { status: 400 }
+        );
+      }
+
+      // Validar tamanho (25MB max)
+      const maxSize = 25 * 1024 * 1024;
+      if (audioFile.size > maxSize) {
+        return NextResponse.json(
+          { error: 'Arquivo muito grande. Tamanho máximo: 25MB.' },
+          { status: 400 }
+        );
+      }
+    } else {
+      // Processar JSON (modo de gravação ao vivo)
+      const body = await req.json();
+      recordingMode = body.recordingMode || 'live';
+      
+      // Validar dados
+      validatedData = SessionCreateSchema.parse(body);
+    }
 
     // Verificar se o paciente existe
     const patient = await prisma.patient.findUnique({
@@ -150,8 +204,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Criar sessão com status inicial "recording"
-    // Os campos sessionType, specialty e motivation estão definidos no schema.prisma
+    // Criar sessão com status inicial baseado no modo
     const session = await prisma.session.create({
       data: {
         patientId: validatedData.patientId,
@@ -160,7 +213,7 @@ export async function POST(req: NextRequest) {
         sessionType: validatedData.sessionType,
         specialty: validatedData.specialty,
         motivation: validatedData.motivation,
-        status: 'recording',
+        status: recordingMode === 'upload' ? 'processing' : 'recording',
       },
       include: {
         patient: {
@@ -174,7 +227,19 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    console.log(`[Session Created] ID: ${session.id}, Patient: ${patient.name}`);
+    // Se for upload, salvar o arquivo e iniciar processamento
+    if (recordingMode === 'upload' && audioFile) {
+      // TODO: Implementar salvamento do arquivo e iniciar processamento
+      // 1. Salvar arquivo no storage (filesystem ou cloud)
+      // 2. Criar registro de transcrição
+      // 3. Iniciar processamento assíncrono (transcrição + geração de nota)
+      console.log(`[Audio Upload] Session: ${session.id}, File: ${audioFile.name}, Size: ${audioFile.size} bytes`);
+      
+      // Por enquanto, apenas log - implementação completa será feita posteriormente
+      console.warn('[TODO] Implement audio file storage and processing');
+    }
+
+    console.log(`[Session Created] ID: ${session.id}, Patient: ${patient.name}, Mode: ${recordingMode}`);
 
     return NextResponse.json(
       {

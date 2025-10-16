@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import {
   AlertCircle,
   AlertTriangle,
@@ -13,9 +13,16 @@ import {
   RefreshCcw,
   Search,
   ShieldCheck,
-  Sparkles
+  Sparkles,
+  Upload,
+  FileAudio,
+  X,
+  File,
+  Music
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+
+type RecordingMode = 'live' | 'upload';
 
 type PatientSessionStatus = 'Concluída' | 'Agendada' | 'Em andamento' | 'Pendente';
 
@@ -182,6 +189,13 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
   const [notesTooltipVisible, setNotesTooltipVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  
+  // Estados para upload de áudio
+  const [recordingMode, setRecordingMode] = useState<RecordingMode>('live');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadPatients = useCallback(async () => {
     try {
@@ -265,20 +279,46 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
       return;
     }
 
+    // Validar upload se o modo for 'upload'
+    if (recordingMode === 'upload' && !selectedFile) {
+      setToastMessage('Selecione um arquivo de áudio para fazer upload.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      const response = await fetch('/api/sessions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          patientId: selectedPatient.id,
-          sessionType,
-          specialty,
-          motivation: motivation.trim()
-        })
-      });
+      let response;
+
+      // Se for upload, enviar com FormData
+      if (recordingMode === 'upload' && selectedFile) {
+        const formData = new FormData();
+        formData.append('patientId', selectedPatient.id);
+        formData.append('sessionType', sessionType);
+        formData.append('specialty', specialty);
+        formData.append('motivation', motivation.trim());
+        formData.append('audio', selectedFile);
+        formData.append('recordingMode', 'upload');
+
+        response = await fetch('/api/sessions', {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        // Modo gravação ao vivo (mantém comportamento anterior)
+        response = await fetch('/api/sessions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            patientId: selectedPatient.id,
+            sessionType,
+            specialty,
+            motivation: motivation.trim(),
+            recordingMode: 'live'
+          })
+        });
+      }
 
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
@@ -317,6 +357,70 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
 
   const handleViewAISummary = () => {
     setToastMessage('Resumo inteligente gerado automaticamente (em breve).');
+  };
+
+  // Funções para upload de arquivo
+  const ACCEPTED_AUDIO_TYPES = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/m4a', 'audio/ogg', 'audio/webm'];
+  const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB
+
+  const validateFile = (file: File): string | null => {
+    if (!ACCEPTED_AUDIO_TYPES.includes(file.type)) {
+      return 'Formato não suportado. Use MP3, WAV, M4A ou OGG.';
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      return 'Arquivo muito grande. Tamanho máximo: 25MB.';
+    }
+    return null;
+  };
+
+  const handleFileSelect = (file: File) => {
+    const error = validateFile(file);
+    if (error) {
+      setToastMessage(error);
+      return;
+    }
+    setSelectedFile(file);
+    setUploadProgress(0);
+  };
+
+  const handleFileDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    setUploadProgress(0);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   const containerClasses = isModal ? 'w-full' : 'min-h-screen bg-[#F8FAFC] p-6 md:p-10';
@@ -562,12 +666,144 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
         </section>
 
         {selectedPatient ? (
-          <section className="mt-8 space-y-5 rounded-2xl border border-[#E2E8F0] bg-white/70 p-6">
-            <div className="flex items-center justify-between">
+          <>
+            {/* Seção 2: Método de Captura */}
+            <section className="mt-8 space-y-5 rounded-2xl border border-[#E2E8F0] bg-gradient-to-br from-white/90 to-[#F8FAFF] p-6">
               <div>
-                <h2 className="text-lg font-semibold text-[#111827]">2. Detalhes da Sessão</h2>
-                <p className="text-sm text-[#64748B]">Personalize o encontro com informações que aceleram a documentação.</p>
+                <h2 className="text-lg font-semibold text-[#111827]">2. Método de Captura de Áudio</h2>
+                <p className="text-sm text-[#64748B]">Escolha como deseja fornecer o áudio da sessão para transcrição.</p>
               </div>
+
+              {/* Tabs */}
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRecordingMode('live');
+                    setSelectedFile(null);
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-2 rounded-xl border-2 px-6 py-4 font-semibold transition-all duration-300 ${
+                    recordingMode === 'live'
+                      ? 'border-[#4F46E5] bg-gradient-to-br from-[#4F46E5] to-[#6366F1] text-white shadow-[0_16px_35px_-24px_rgba(79,70,229,0.65)]'
+                      : 'border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#C7D2FE] hover:bg-[#EEF2FF] hover:text-[#4F46E5]'
+                  }`}
+                >
+                  <Mic className="h-5 w-5" />
+                  <span>Gravar Agora</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRecordingMode('upload')}
+                  className={`flex-1 flex items-center justify-center gap-2 rounded-xl border-2 px-6 py-4 font-semibold transition-all duration-300 ${
+                    recordingMode === 'upload'
+                      ? 'border-[#4F46E5] bg-gradient-to-br from-[#4F46E5] to-[#6366F1] text-white shadow-[0_16px_35px_-24px_rgba(79,70,229,0.65)]'
+                      : 'border-[#E2E8F0] bg-white text-[#64748B] hover:border-[#C7D2FE] hover:bg-[#EEF2FF] hover:text-[#4F46E5]'
+                  }`}
+                >
+                  <Upload className="h-5 w-5" />
+                  <span>Upload de Arquivo</span>
+                </button>
+              </div>
+
+              {/* Conteúdo do modo selecionado */}
+              {recordingMode === 'live' ? (
+                <div className="rounded-xl border border-[#E0E7FF] bg-[#F8FAFF] p-6">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#4F46E5]">
+                      <Mic className="h-5 w-5 text-white" />
+                    </div>
+                    <h3 className="font-semibold text-[#111827]">Gravação ao Vivo</h3>
+                  </div>
+                  <p className="text-sm text-[#64748B] mb-4">
+                    A gravação será iniciada automaticamente quando você avançar para a próxima etapa. 
+                    Certifique-se de que seu microfone está funcionando corretamente.
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-[#6366F1]">
+                    <Info className="h-4 w-4" />
+                    <span>Duração máxima: 2 horas • Formato: WAV/WebM</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {!selectedFile ? (
+                    <div
+                      onDrop={handleFileDrop}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      className={`rounded-xl border-2 border-dashed transition-all duration-300 ${
+                        isDragging
+                          ? 'border-[#4F46E5] bg-[#EEF2FF]'
+                          : 'border-[#E2E8F0] bg-white hover:border-[#C7D2FE] hover:bg-[#F8FAFF]'
+                      }`}
+                    >
+                      <div className="p-8 text-center">
+                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#E0E7FF] to-[#C7D2FE]">
+                          <FileAudio className="h-8 w-8 text-[#4F46E5]" />
+                        </div>
+                        <h3 className="mb-2 text-lg font-semibold text-[#111827]">
+                          {isDragging ? 'Solte o arquivo aqui' : 'Arraste um arquivo de áudio'}
+                        </h3>
+                        <p className="mb-4 text-sm text-[#64748B]">
+                          ou clique para selecionar do seu computador
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#4F46E5] to-[#6366F1] px-6 py-3 text-sm font-semibold text-white shadow-[0_16px_35px_-24px_rgba(79,70,229,0.65)] transition-transform hover:-translate-y-0.5"
+                        >
+                          <Upload className="h-4 w-4" />
+                          Selecionar Arquivo
+                        </button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="audio/*"
+                          onChange={handleFileInputChange}
+                          className="hidden"
+                        />
+                        <p className="mt-4 text-xs text-[#94A3B8]">
+                          Formatos suportados: MP3, WAV, M4A, OGG • Máximo: 25MB
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-[#D1FAE5] bg-gradient-to-br from-[#ECFDF5] to-white p-6">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-3 flex-1">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#10B981]">
+                            <Music className="h-6 w-6 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-[#111827] truncate">{selectedFile.name}</h4>
+                            <p className="text-sm text-[#64748B] mt-1">{formatFileSize(selectedFile.size)}</p>
+                            <div className="mt-3 flex items-center gap-2">
+                              <CheckCircle2 className="h-4 w-4 text-[#10B981]" />
+                              <span className="text-xs font-medium text-[#059669]">Arquivo pronto para upload</span>
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleRemoveFile}
+                          className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100 text-red-600 transition-colors hover:bg-red-200"
+                          title="Remover arquivo"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+
+            {/* Seção 3: Detalhes da Sessão */}
+            <section className="mt-8 space-y-5 rounded-2xl border border-[#E2E8F0] bg-white/70 p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-[#111827]">3. Detalhes da Sessão</h2>
+                  <p className="text-sm text-[#64748B]">Personalize o encontro com informações que aceleram a documentação.</p>
+                </div>
               <button
                 type="button"
                 onMouseEnter={() => setNotesTooltipVisible(true)}
@@ -691,11 +927,12 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
               </div>
             </div>
           </section>
+          </>
         ) : null}
 
         <section className="mt-8 space-y-6 rounded-2xl border border-[#E2E8F0] bg-white/80 p-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-[#111827]">3. Confirmação</h2>
+            <h2 className="text-lg font-semibold text-[#111827]">4. Confirmação</h2>
             <p className="text-sm text-[#94A3B8]">Revise antes de iniciar a sessão</p>
           </div>
 
