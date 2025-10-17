@@ -287,9 +287,6 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
 
     setIsSubmitting(true);
     try {
-      let response;
-
-      // Se for upload, enviar com FormData
       if (recordingMode === 'upload' && selectedFile) {
         const formData = new FormData();
         formData.append('patientId', selectedPatient.id);
@@ -299,42 +296,35 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
         formData.append('audio', selectedFile);
         formData.append('recordingMode', 'upload');
 
-        response = await fetch('/api/sessions', {
+        const response = await fetch('/api/sessions', {
           method: 'POST',
           body: formData,
         });
-      } else {
-        // Modo gravação ao vivo (mantém comportamento anterior)
-        response = await fetch('/api/sessions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            patientId: selectedPatient.id,
-            sessionType,
-            specialty,
-            motivation: motivation.trim(),
-            recordingMode: 'live'
-          })
+
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload?.error ?? 'Falha ao iniciar a sessão.');
+        }
+
+        const payload = (await response.json()) as { id: string };
+
+        onSuccess?.();
+        const params = new URLSearchParams({
+          sessionId: payload.id,
+          patientId: selectedPatient.id,
+          patientName: selectedPatient.name
         });
+
+        router.push(`/dashboard/session?${params.toString()}`);
+      } else {
+        onSuccess?.();
+        const params = new URLSearchParams({
+          patientId: selectedPatient.id,
+          patientName: selectedPatient.name
+        });
+
+        router.push(`/dashboard/session?${params.toString()}`);
       }
-
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload?.error ?? 'Falha ao iniciar a sessão.');
-      }
-
-      const payload = (await response.json()) as { id: string };
-
-      onSuccess?.();
-      const params = new URLSearchParams({
-        sessionId: payload.id,
-        patientId: selectedPatient.id,
-        patientName: selectedPatient.name
-      });
-
-      router.push(`/dashboard/session?${params.toString()}`);
     } catch (error: any) {
       console.error('Failed to start session', error);
       setToastMessage(error?.message ?? 'Não foi possível iniciar a sessão.');

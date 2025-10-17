@@ -130,7 +130,19 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/sessions - Criar nova sessão
+/**
+ * POST /api/sessions - Criar sessão temporária para processamento
+ * 
+ * ⚠️ ATENÇÃO: Esta rota cria sessões com status 'recording' ou 'processing'
+ * que são TEMPORÁRIAS e usadas apenas para upload de áudio.
+ * 
+ * Para gravação ao vivo (live recording), NÃO use esta rota.
+ * Use apenas /api/sessions/save quando o usuário clicar em "Salvar".
+ * 
+ * Fluxo correto:
+ * 1. Live Recording: Não criar sessão → Processar com /api/sessions/process-temp → Salvar com /api/sessions/save
+ * 2. Upload: Criar sessão temporária aqui → Processar → Atualizar ou salvar nova
+ */
 export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get('content-type') || '';

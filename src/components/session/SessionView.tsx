@@ -225,7 +225,9 @@ const SessionView = () => {
     try {
       console.log('[Save Session] Criando sessão no banco de dados...');
 
-      // 1. Criar sessão completa no banco (primeira e única vez)
+      // ⚠️ IMPORTANTE: Esta é a ÚNICA vez que criamos a sessão no banco de dados
+      // Não existe sessão prévia - ela é criada aqui quando o usuário clica em "Salvar"
+      // Isso evita duplicação de sessões no prontuário do paciente
       const formData = new FormData();
       
       // Dados da sessão
