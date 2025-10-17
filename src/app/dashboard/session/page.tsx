@@ -11,7 +11,7 @@ const NewSessionPage = () => {
       <Sidebar />
 
       {/* Main Content */}
-      <div className="flex-1 lg:ml-64">
+      <div className="flex-1 lg:ml-72">
         <div className="h-screen">
           <Suspense
             fallback={

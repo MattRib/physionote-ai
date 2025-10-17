@@ -22,14 +22,14 @@ export default function NewSessionPage() {
       ) : null}
 
       <div
-        className={`fixed left-0 top-0 z-50 h-screen w-64 transform bg-white shadow-lg transition-transform duration-300 lg:hidden ${
+        className={`fixed left-0 top-0 z-50 h-screen w-72 transform bg-white shadow-lg transition-transform duration-300 lg:hidden ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <Sidebar />
       </div>
 
-      <main className="min-h-screen lg:ml-64">
+      <main className="min-h-screen lg:ml-72">
         <div className="fixed left-0 right-0 top-0 z-30 flex items-center justify-between bg-white px-4 py-3 shadow-md lg:hidden">
           <button
             type="button"

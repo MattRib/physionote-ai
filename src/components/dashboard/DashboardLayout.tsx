@@ -145,7 +145,7 @@ const DashboardLayout = () => {
 
       {/* Mobile Sidebar */}
       <div className={`
-        fixed left-0 top-0 h-screen w-64 bg-white shadow-lg z-50
+        fixed left-0 top-0 h-screen w-72 bg-white shadow-lg z-50
         transform transition-transform duration-300 lg:hidden
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
@@ -153,7 +153,7 @@ const DashboardLayout = () => {
       </div>
 
       {/* Main Content */}
-      <main className="lg:ml-64 min-h-screen">
+      <main className="lg:ml-72 min-h-screen">
         
         {/* Top Bar - Mobile Menu Button */}
         <div className="lg:hidden fixed top-0 left-0 right-0 bg-white/80 backdrop-blur-md shadow-md z-30 px-4 py-3 flex items-center justify-between">
