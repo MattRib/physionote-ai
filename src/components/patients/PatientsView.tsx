@@ -5,6 +5,7 @@ import { Plus, Search, Filter } from 'lucide-react';
 import PatientsList from './PatientsList';
 import PatientModal from './PatientModal';
 import { AlertModal, AlertType } from '@/components/common';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 export interface Patient {
   id: string;
@@ -360,7 +361,7 @@ const PatientsView = () => {
       {/* Loading State */}
       {loading && (
         <div className="rounded-[26px] border border-white/70 bg-white/90 p-16 text-center shadow-[0_22px_55px_-42px_rgba(79,70,229,0.45)]">
-          <div className="mx-auto mb-5 h-16 w-16 animate-spin rounded-full border-4 border-[#4F46E5] border-t-transparent"></div>
+          <LoadingSpinner size="lg" className="mx-auto mb-5" />
           <p className="text-sm font-medium text-[#475569]">Carregando pacientes...</p>
         </div>
       )}

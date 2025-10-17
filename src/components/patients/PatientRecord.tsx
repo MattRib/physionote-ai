@@ -13,7 +13,6 @@ import {
   Clock,
   Download,
   FileText,
-  Loader2,
   Mail,
   MapPin,
   Phone,
@@ -31,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import AlertModal from '@/components/common/AlertModal';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 // Tipos para a resposta da API
 interface NoteContent {
@@ -404,7 +404,10 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
     return `NOTA DE EVOLUÇÃO FISIOTERAPÊUTICA\n` +
 `Paciente: ${patient.name}\n` +
 `Data: ${formatDate(session.date)} às ${formatTime(session.date)}\n` +
-`Duração: ${session.durationMin || 'N/A'} minutos\n\n` +
+`Duração: ${session.durationMin || 'N/A'} minutos\n` +
+(session.sessionType ? `Tipo de Sessão: ${session.sessionType}\n` : '') +
+(session.specialty ? `Especialidade: ${session.specialty}\n` : '') +
+`\n` +
 `RESUMO EXECUTIVO\n` +
 `Queixa Principal: ${note.resumoExecutivo?.queixaPrincipal || 'N/A'}\n` +
 `Nível de Dor: ${note.resumoExecutivo?.nivelDor || 'N/A'}/10\n` +
@@ -531,6 +534,19 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
         doc.setFont('helvetica', 'bold');
         doc.text(`\nSessão ${idx + 1} — ${formatDate(s.date)} ${formatTime(s.date)}`, margin, cursorY);
         cursorY += 10;
+        
+        // Adicionar tipo de sessão e especialidade se existirem
+        if (s.sessionType || s.specialty) {
+          doc.setFont('helvetica', 'italic');
+          doc.setFontSize(9);
+          const sessionInfo = [];
+          if (s.sessionType) sessionInfo.push(`Tipo: ${s.sessionType}`);
+          if (s.specialty) sessionInfo.push(`Especialidade: ${s.specialty}`);
+          doc.text(sessionInfo.join(' | '), margin, cursorY);
+          cursorY += 6;
+          doc.setFontSize(10);
+        }
+        
         doc.setFont('helvetica', 'normal');
         addBlock(buildSessionText(s));
         doc.setDrawColor(230);
@@ -559,7 +575,7 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#EEF2FF] via-[#FFFFFF] to-[#F8FAFF] flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-[#4F46E5] mx-auto mb-4" />
+          <LoadingSpinner size="lg" className="mx-auto mb-4" />
           <p className="text-lg font-medium text-[#475569]">Carregando prontuário...</p>
         </div>
       </div>
@@ -624,7 +640,7 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
               >
                 {summarizingHistory ? (
                   <>
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#4F46E5] border-t-transparent" />
+                    <LoadingSpinner size="sm" />
                     Gerando resumo...
                   </>
                 ) : historySummary ? (
@@ -925,8 +941,25 @@ const PatientRecord: React.FC<PatientRecordProps> = ({ patientId }) => {
                             <span>{formatTime(session.date)}</span>
                           </span>
                           <span>•</span>
-                          <span>{session.durationMin || 'N/A'} minutos</span>
+                          <span>{session.durationMin ? `${session.durationMin} minutos` : 'Duração não registrada'}</span>
                         </div>
+                        {/* Tipo de Sessão e Especialidade */}
+                        {(session.sessionType || session.specialty) && (
+                          <div className="mt-2 flex items-center gap-2 flex-wrap">
+                            {session.sessionType && (
+                              <span className="inline-flex items-center rounded-full bg-[#EEF2FF] px-2.5 py-0.5 text-xs font-medium text-[#4F46E5] border border-[#C7D2FE]">
+                                <FileText className="w-3 h-3 mr-1" />
+                                {session.sessionType}
+                              </span>
+                            )}
+                            {session.specialty && (
+                              <span className="inline-flex items-center rounded-full bg-[#F0FDFA] px-2.5 py-0.5 text-xs font-medium text-[#0F766E] border border-[#99F6E4]">
+                                <Stethoscope className="w-3 h-3 mr-1" />
+                                {session.specialty}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">

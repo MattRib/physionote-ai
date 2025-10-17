@@ -261,6 +261,7 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
 	showAIDisclaimer = true
 }) => {
 	const [copied, setCopied] = useState(false);
+	const [isSaving, setIsSaving] = useState(false);
 	const [expandedSections, setExpandedSections] = useState<Set<SectionKey>>(() =>
 		new Set<SectionKey>(["resumo", "anamnese", "diagnostico", "intervencoes", "resposta", "orientacoes", "plano"])
 	);
@@ -305,12 +306,18 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
 		setTimeout(() => setCopied(false), 2000);
 	};
 
-	const handleSaveClick = () => {
-		onSave();
+	const handleSaveClick = async () => {
+		setIsSaving(true);
+		try {
+			await onSave();
+		} catch (error) {
+			console.error('Error saving session:', error);
+			setIsSaving(false);
+		}
 	};
 
 	const handleClose = () => {
-		if (confirm("Tem certeza que deseja descartar esta sessão? Todos os dados serão perdidos.")) {
+		if (confirm("⚠️ ATENÇÃO: Esta sessão NÃO foi salva no prontuário!\n\nTem certeza que deseja descartar? Todos os dados (transcrição e nota gerada) serão perdidos permanentemente.")) {
 			onCancel();
 		}
 	};
@@ -866,14 +873,25 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
 						</button>
 						<button
 							onClick={handleSaveClick}
-							className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#22C55E] to-[#16A34A] px-5 py-2 text-sm font-semibold text-white shadow-[0_22px_45px_-28px_rgba(34,197,94,0.55)] transition-transform hover:-translate-y-0.5"
+							disabled={isSaving}
+							className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#22C55E] to-[#16A34A] px-5 py-2 text-sm font-semibold text-white shadow-[0_22px_45px_-28px_rgba(34,197,94,0.55)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
 						>
-							<Save className="h-4 w-4" aria-hidden="true" />
-							Salvar sessão
+							{isSaving ? (
+								<>
+									<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+									Salvando no prontuário...
+								</>
+							) : (
+								<>
+									<Save className="h-4 w-4" aria-hidden="true" />
+									Salvar sessão
+								</>
+							)}
 						</button>
 						<button
 							onClick={handleClose}
-							className="btn-cancel rounded-2xl"
+							disabled={isSaving}
+							className="btn-cancel rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							<X className="h-4 w-4" aria-hidden="true" />
 							Descartar

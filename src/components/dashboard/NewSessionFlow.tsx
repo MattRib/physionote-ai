@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   ChevronRight,
   Info,
-  Loader2,
   Mic,
   Plus,
   RefreshCcw,
@@ -21,6 +20,7 @@ import {
   Music
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 
 type RecordingMode = 'live' | 'upload';
 
@@ -494,7 +494,7 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
             <div className="mt-3 min-h-[3rem]">
               {patientsLoading ? (
                 <div className="flex items-center gap-2 rounded-2xl border border-dashed border-[#C7D2FE] bg-[#EEF2FF] px-4 py-3 text-sm text-[#4F46E5]">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <LoadingSpinner size="sm" />
                   Carregando pacientes...
                 </div>
               ) : patientsError ? (
@@ -972,7 +972,7 @@ const NewSessionFlow: React.FC<NewSessionFlowProps> = ({ onSuccess, onCancel, is
             >
               {isSubmitting ? (
                 <>
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <LoadingSpinner size="sm" />
                   Abrindo consulta...
                 </>
               ) : (

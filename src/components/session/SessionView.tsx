@@ -7,9 +7,16 @@ import {
   Play,
   Activity,
   AlertCircle,
-  Loader2
+  Radio,
+  Clock,
+  User,
+  Pause,
+  Volume2
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Lottie from 'lottie-react';
+import audioRecordingAnimation from '@/../../public/animations/audio-recording.json';
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 import PatientSelector from './PatientSelector';
 import SessionSummary from './SessionSummary';
 
@@ -64,30 +71,10 @@ const SessionView = () => {
       return;
     }
 
-    try {
-      // Criar sessão no backend
-      const response = await fetch('/api/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          patientId: selectedPatient.id,
-          sessionType: 'Atendimento',
-          specialty: 'Fisioterapia',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Falha ao criar sessão');
-      }
-
-      const data = await response.json();
-      setSessionId(data.id);
-      setSessionStarted(true);
-      startRecording();
-    } catch (error) {
-      console.error('Error creating session:', error);
-      alert('Não foi possível criar a sessão. Tente novamente.');
-    }
+    // NÃO criar sessão no banco ainda - apenas iniciar gravação
+    // A sessão será criada apenas quando o usuário clicar em "Salvar"
+    setSessionStarted(true);
+    startRecording();
   };
 
   const startRecording = async () => {
@@ -143,11 +130,6 @@ const SessionView = () => {
   }, [searchParams]);
 
   const handleStopSession = async () => {
-    if (!sessionId) {
-      alert('Erro: ID da sessão não encontrado');
-      return;
-    }
-
     setIsFinishing(true);
     setProcessingStatus('Finalizando gravação...');
     
@@ -172,27 +154,19 @@ const SessionView = () => {
 
       console.log(`Audio size: ${(audioBlob.size / 1024 / 1024).toFixed(2)}MB`);
 
-      // 2. Upload do áudio
-      setProcessingStatus('Enviando áudio...');
+      // 2. Processar áudio localmente (sem salvar no banco ainda)
+      setProcessingStatus('Transcrevendo com IA...');
+      
       const formData = new FormData();
       formData.append('audio', audioBlob, 'recording.webm');
+      formData.append('patientId', selectedPatient!.id);
+      formData.append('sessionType', 'Atendimento');
+      formData.append('specialty', 'Fisioterapia');
+      formData.append('processOnly', 'true'); // Flag para processar sem salvar
 
-      const uploadResponse = await fetch(`/api/sessions/${sessionId}/audio`, {
+      const processResponse = await fetch('/api/sessions/process-temp', {
         method: 'POST',
         body: formData,
-      });
-
-      if (!uploadResponse.ok) {
-        const error = await uploadResponse.json();
-        throw new Error(error.error || 'Falha no upload do áudio');
-      }
-
-      console.log('Audio uploaded successfully');
-
-      // 3. Processar com IA (Whisper + GPT-4)
-      setProcessingStatus('Transcrevendo com IA...');
-      const processResponse = await fetch(`/api/sessions/${sessionId}/process`, {
-        method: 'POST',
       });
 
       if (!processResponse.ok) {
@@ -203,21 +177,22 @@ const SessionView = () => {
       const result = await processResponse.json();
       console.log('Processing complete:', result);
 
-      // 4. Atualizar estado com transcrição e nota gerada
-      if (result.session?.transcription) {
-        // Dividir transcrição em frases
-        const sentences = result.session.transcription
+      // 3. Armazenar dados em memória para revisão
+      if (result.transcription) {
+        const sentences = result.transcription
           .split(/[.!?]+/)
           .map((s: string) => s.trim())
           .filter((s: string) => s.length > 0);
         setTranscription(sentences);
       }
 
-      // Armazenar nota gerada pela IA
       if (result.note) {
         console.log('Nota gerada pela IA:', result.note);
         setGeneratedNote(result.note);
       }
+
+      // Armazenar blob de áudio para salvar depois
+      audioChunksRef.current = [audioBlob];
 
       setProcessingStatus('Concluído!');
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -236,9 +211,60 @@ const SessionView = () => {
     }
   };
 
-  const handleSaveSession = () => {
-    // Aqui você salvaria os dados no backend
-    router.push('/dashboard');
+  const handleSaveSession = async () => {
+    if (!selectedPatient) {
+      alert('Erro: Paciente não selecionado');
+      return;
+    }
+
+    if (!generatedNote) {
+      alert('Erro: Nota não foi gerada');
+      return;
+    }
+
+    try {
+      console.log('[Save Session] Criando sessão no banco de dados...');
+
+      // 1. Criar sessão completa no banco (primeira e única vez)
+      const formData = new FormData();
+      
+      // Dados da sessão
+      formData.append('patientId', selectedPatient.id);
+      formData.append('sessionType', 'Atendimento');
+      formData.append('specialty', 'Fisioterapia');
+      formData.append('durationMin', Math.floor(duration / 60).toString());
+      
+      // Áudio gravado
+      if (audioChunksRef.current.length > 0) {
+        const audioBlob = audioChunksRef.current[0] as Blob;
+        formData.append('audio', audioBlob, 'recording.webm');
+      }
+      
+      // Transcrição
+      formData.append('transcription', transcription.join('. '));
+      
+      // Nota gerada pela IA (JSON)
+      formData.append('note', JSON.stringify(generatedNote));
+
+      const response = await fetch('/api/sessions/save', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Falha ao salvar sessão');
+      }
+
+      const result = await response.json();
+      console.log('[Session Saved] ID:', result.sessionId, 'Status: completed');
+      
+      // Redirecionar para dashboard
+      router.push('/dashboard');
+    } catch (error: any) {
+      console.error('Error saving session:', error);
+      alert(`Não foi possível salvar a sessão: ${error.message}\n\nTente novamente.`);
+    }
   };
 
   const handleCancelSession = () => {
@@ -315,74 +341,197 @@ const SessionView = () => {
 
   // Tela de gravação com enfoque minimalista e funcional
   return (
-    <div className="relative flex h-full flex-col items-center justify-center bg-gradient-to-br from-[#F8FAFC] via-[#EEF2FF] to-[#F4F3FF] px-6 py-12">
+    <div className="relative flex h-full flex-col items-center justify-center bg-gradient-to-br from-[#F8FAFC] via-[#EEF2FF] to-[#F4F3FF] px-6 py-8 overflow-hidden">
+      {/* Background Effects */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.16),transparent_55%)]"
       />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-40"
+        style={{
+          backgroundImage: 'radial-gradient(circle at 20px 20px, rgba(99,102,241,0.05) 1px, transparent 0)',
+          backgroundSize: '40px 40px'
+        }}
+      />
 
-      <div className="relative flex w-full max-w-4xl flex-col items-center gap-12">
-        <header className="flex w-full flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/70 bg-white/70 px-6 py-4 shadow-[0_24px_50px_-32px_rgba(15,23,42,0.25)] backdrop-blur">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="inline-flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-600">
-              <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-              Gravando
-            </span>
-            <div className="flex flex-col text-left">
-              <span className="text-xs font-semibold uppercase tracking-[0.24em] text-[#6366F1]">Paciente</span>
-              <span className="text-sm font-medium text-[#1E293B]">{selectedPatient?.name}</span>
+      <div className="relative flex w-full max-w-5xl flex-col items-center gap-8">
+        {/* Header Card - Calm & Professional Design */}
+        <header className="w-full rounded-3xl border border-white/60 bg-white/90 backdrop-blur-xl shadow-[0_24px_50px_-32px_rgba(15,23,42,0.3)] overflow-hidden">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 p-6">
+            {/* Left Section - Patient & Session Status */}
+            <div className="flex items-center gap-4">
+              {/* Subtle Recording Indicator */}
+              <div className="relative flex items-center justify-center">
+                <span className="absolute h-14 w-14 rounded-full bg-[#4F46E5]/10 animate-pulse" style={{ animationDuration: '3s' }} />
+                <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#4F46E5] to-[#6366F1] shadow-md">
+                  <Radio className="h-5 w-5 text-white" style={{ animation: 'gentle-opacity 4s ease-in-out infinite' }} />
+                </div>
+              </div>
+
+              {/* Patient Info */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#EEF2FF] to-[#E0E7FF] border border-[#C7D2FE] px-3 py-1 text-xs font-semibold tracking-wide text-[#4338CA]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#6366F1]" style={{ animation: 'gentle-opacity 4s ease-in-out infinite' }} />
+                    Em Sessão
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-[#1E293B]">
+                  <User className="h-4 w-4 text-[#6366F1]" />
+                  <span className="text-sm font-semibold">{selectedPatient?.name}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Section - Timer (Prominent) */}
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-[#94A3B8]">
+                <Clock className="h-3.5 w-3.5" />
+                Duração
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-5xl font-bold text-[#0F172A] tabular-nums tracking-tight">
+                  {formatTime(duration)}
+                </span>
+              </div>
+              <div className="text-xs text-[#64748B] font-medium">
+                {duration < 60 ? 'Iniciando...' : duration < 300 ? 'Em andamento' : 'Sessão longa detectada'}
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-col items-end text-right">
-            <span className="text-xs font-medium uppercase tracking-[0.24em] text-[#94A3B8]">Duração</span>
-            <span className="font-mono text-3xl font-semibold text-[#0F172A]">{formatTime(duration)}</span>
-          </div>
+          {/* Progress Bar - Subtle gradient */}
+          <div className="h-1 bg-gradient-to-r from-[#4F46E5]/80 via-[#6366F1]/60 to-[#4F46E5]/80" 
+               style={{ backgroundSize: '200% 100%', animation: 'shimmer 8s linear infinite' }} 
+          />
         </header>
 
-        <section className="flex w-full flex-col items-center gap-6 rounded-3xl border border-white/70 bg-white/70 px-10 py-12 text-center shadow-[0_30px_60px_-40px_rgba(79,70,229,0.55)] backdrop-blur">
-          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-[#4F46E5] to-[#6366F1] text-white shadow-[0_18px_38px_-18px_rgba(79,70,229,0.75)]">
-            <Mic className="h-12 w-12" aria-hidden="true" />
+        {/* Main Recording Card - Compact & Focused */}
+        <section className="w-full rounded-[2rem] border-2 border-white/70 bg-gradient-to-br from-white/95 to-white/80 backdrop-blur-xl px-10 py-12 text-center shadow-[0_30px_60px_-20px_rgba(79,70,229,0.25)]">
+          {/* Animation Container - Smaller */}
+          <div className="mb-6 flex items-center justify-center">
+            <div className="relative">
+              {/* Softer outer glow rings */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="h-36 w-36 rounded-full bg-gradient-to-r from-[#4F46E5]/8 to-[#6366F1]/8 animate-pulse" 
+                     style={{ animationDuration: '4s' }} 
+                />
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="h-28 w-28 rounded-full bg-gradient-to-r from-[#4F46E5]/15 to-[#6366F1]/15 animate-pulse" 
+                     style={{ animationDuration: '3s', animationDelay: '0.5s' }} 
+                />
+              </div>
+              
+              {/* Lottie Animation - Reduced size */}
+              <div className="relative z-10">
+                <Lottie 
+                  animationData={audioRecordingAnimation} 
+                  loop={true}
+                  className="h-28 w-auto drop-shadow-xl"
+                  aria-hidden="true"
+                />
+              </div>
+            </div>
           </div>
-          <div className="space-y-2">
-            <p className="text-lg font-semibold text-[#0F172A]">Microfone ativo</p>
-            <p className="text-sm text-[#64748B]">
-              A IA está acompanhando em tempo real. Evite interromper para manter a transcrição fiel ao atendimento.
-            </p>
+
+          {/* Status Text - Calm reassurance */}
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold text-[#0F172A] flex items-center justify-center gap-2.5">
+                <Volume2 className="h-5 w-5 text-[#6366F1]" style={{ animation: 'gentle-opacity 4s ease-in-out infinite' }} />
+                IA Ativa - Gravando
+              </h2>
+              <p className="text-sm text-[#64748B] max-w-xl mx-auto leading-relaxed">
+                A IA está acompanhando e transcrevendo a sessão em tempo real. Continue o atendimento naturalmente.
+              </p>
+            </div>
+
+            {/* Real-time Stats - Maintained for confidence */}
+            <div className="flex items-center justify-center gap-8 pt-3">
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-2 text-xs font-medium text-[#94A3B8]">
+                  <Activity className="h-3.5 w-3.5" />
+                  Status
+                </div>
+                <span className="text-base font-bold text-[#10B981]">Capturando</span>
+              </div>
+              
+              <div className="h-10 w-px bg-gradient-to-b from-transparent via-[#E2E8F0] to-transparent" />
+              
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-2 text-xs font-medium text-[#94A3B8]">
+                  <Mic className="h-3.5 w-3.5" />
+                  Qualidade
+                </div>
+                <span className="text-base font-bold text-[#10B981]">Excelente</span>
+              </div>
+            </div>
           </div>
         </section>
 
-        <div className="flex w-full flex-col items-center gap-6">
+        {/* Actions Section - Clear CTA */}
+        <div className="flex w-full flex-col items-center gap-5">
           {!isFinishing ? (
             <button
               onClick={handleStopSession}
-              className="inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-[#EF4444] to-[#F87171] px-10 py-4 text-base font-semibold text-white shadow-[0_22px_45px_-28px_rgba(239,68,68,0.65)] transition-transform hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FECACA]"
+              className="group relative inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-[#EF4444] via-[#F87171] to-[#EF4444] bg-[length:200%_100%] px-12 py-5 text-lg font-bold text-white shadow-[0_20px_40px_-15px_rgba(239,68,68,0.5)] transition-all duration-300 hover:shadow-[0_25px_50px_-12px_rgba(239,68,68,0.6)] hover:scale-[1.02] active:scale-[0.98] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FECACA]"
+              style={{ animation: 'shimmer 3s linear infinite' }}
             >
-              <Square className="h-5 w-5" aria-hidden="true" />
-              Finalizar consulta e gerar transcrição
+              <Square className="h-6 w-6 transition-transform group-hover:scale-110" aria-hidden="true" />
+              Finalizar Sessão e Gerar Notas
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" 
+                   style={{ transform: 'translateX(-100%)', animation: 'shimmer 2s linear infinite' }} 
+              />
             </button>
           ) : (
-            <div className="flex w-full items-center justify-center gap-4 rounded-2xl border border-white/70 bg-white/80 px-10 py-5 shadow-[0_24px_50px_-32px_rgba(15,23,42,0.25)]">
-              <Loader2 className="h-5 w-5 animate-spin text-[#4F46E5]" aria-hidden="true" />
-              <div className="text-left">
-                <p className="text-sm font-semibold text-[#0F172A]">{processingStatus || 'Processando...'}</p>
-                <p className="text-xs text-[#64748B]">
+            <div className="flex w-full items-center justify-center gap-5 rounded-2xl border-2 border-[#E0E7FF] bg-gradient-to-br from-white to-[#F8FAFF] px-10 py-6 shadow-[0_24px_50px_-32px_rgba(99,102,241,0.3)]">
+              <div className="relative flex items-center justify-center">
+                <LoadingSpinner size="md" />
+                <div className="absolute h-12 w-12 rounded-full border-2 border-[#4F46E5]/20 animate-ping" />
+              </div>
+              <div className="flex-1 text-left">
+                <p className="text-base font-bold text-[#0F172A] mb-1">{processingStatus || 'Processando sessão...'}</p>
+                <p className="text-sm text-[#64748B]">
                   {processingStatus.includes('Transcrevendo') 
-                    ? 'Isso pode levar alguns minutos dependendo do tamanho do áudio'
-                    : 'Gerando transcrição e preparando o resumo inteligente'}
+                    ? 'Convertendo áudio em texto com IA avançada. Isso pode levar alguns minutos.'
+                    : 'Analisando transcrição e gerando nota clínica personalizada'}
                 </p>
               </div>
             </div>
           )}
 
-          {!isFinishing ? (
-            <div className="flex w-full items-start gap-3 rounded-2xl border border-transparent bg-[#EEF2FF] px-4 py-3 text-sm text-[#4F46E5]">
-              <AlertCircle className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
-              <p>Conduza a consulta como de costume. Você poderá revisar e editar a nota clínica antes de finalizar o prontuário.</p>
+          {/* Info Banner - Enhanced */}
+          {!isFinishing && (
+            <div className="flex w-full items-start gap-4 rounded-2xl border border-[#C7D2FE] bg-gradient-to-br from-[#EEF2FF] to-[#E0E7FF] px-6 py-4 text-sm shadow-sm">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#4F46E5] to-[#6366F1] shadow-lg">
+                <AlertCircle className="h-5 w-5 text-white" aria-hidden="true" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <p className="font-semibold text-[#3730A3]">Dica profissional</p>
+                <p className="text-[#4338CA] leading-relaxed">
+                  Conduza a consulta naturalmente. Após finalizar, você poderá revisar, editar e aprovar a nota clínica gerada pela IA antes de salvá-la no prontuário.
+                </p>
+              </div>
             </div>
-          ) : null}
+          )}
         </div>
       </div>
+
+      {/* Keyframes for animations */}
+      <style jsx>{`
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        
+        @keyframes gentle-opacity {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
+        }
+      `}</style>
     </div>
   );
 };
