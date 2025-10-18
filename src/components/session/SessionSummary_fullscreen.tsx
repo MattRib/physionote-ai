@@ -16,7 +16,8 @@ import {
 	Stethoscope,
 	TrendingUp,
 	User,
-	X
+	X,
+	Trash2
 } from "lucide-react";
 import NoteAIDisclaimer from "./NoteAIDisclaimer";
 
@@ -262,6 +263,7 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
 }) => {
 	const [copied, setCopied] = useState(false);
 	const [isSaving, setIsSaving] = useState(false);
+	const [showDiscardModal, setShowDiscardModal] = useState(false);
 	const [expandedSections, setExpandedSections] = useState<Set<SectionKey>>(() =>
 		new Set<SectionKey>(["resumo", "anamnese", "diagnostico", "intervencoes", "resposta", "orientacoes", "plano"])
 	);
@@ -317,9 +319,16 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
 	};
 
 	const handleClose = () => {
-		if (confirm("⚠️ ATENÇÃO: Esta sessão NÃO foi salva no prontuário!\n\nTem certeza que deseja descartar? Todos os dados (transcrição e nota gerada) serão perdidos permanentemente.")) {
-			onCancel();
-		}
+		setShowDiscardModal(true);
+	};
+
+	const handleConfirmDiscard = () => {
+		setShowDiscardModal(false);
+		onCancel();
+	};
+
+	const handleCancelDiscard = () => {
+		setShowDiscardModal(false);
 	};
 
 	const toggleSection = (section: SectionKey) => {
@@ -364,6 +373,90 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
 		);
 	};
 
+	// Modal de confirmação para descarte
+	const DiscardModal = () => {
+		if (!showDiscardModal) return null;
+
+		return (
+			<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+				<div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl animate-slide-up-modal overflow-hidden">
+					{/* Header com gradiente */}
+					<div className="relative px-8 py-6 bg-gradient-to-br from-red-500 via-red-600 to-orange-600 text-white">
+						<div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.25),transparent_70%)]" />
+						<div className="relative flex items-center gap-4">
+							<div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur">
+								<Trash2 className="h-6 w-6" />
+							</div>
+							<div>
+								<h3 className="text-xl font-semibold">Descartar sessão</h3>
+								<p className="text-red-100 text-sm mt-1">Esta ação não pode ser desfeita</p>
+							</div>
+						</div>
+					</div>
+
+					{/* Conteúdo */}
+					<div className="px-8 py-6 space-y-6">
+						{/* Aviso principal */}
+						<div className="rounded-2xl bg-red-50 border border-red-200 p-4">
+							<div className="flex gap-3">
+								<AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+								<div>
+									<p className="text-sm font-semibold text-red-800">Esta sessão NÃO foi salva no prontuário!</p>
+									<p className="text-sm text-red-700 mt-1">
+										Todos os dados serão perdidos permanentemente, incluindo:
+									</p>
+								</div>
+							</div>
+						</div>
+
+						{/* Lista de dados que serão perdidos */}
+						<div className="space-y-3">
+							<div className="flex items-center gap-3 text-sm text-gray-600">
+								<div className="w-2 h-2 bg-red-400 rounded-full" />
+								<span>Transcrição completa da sessão</span>
+							</div>
+							<div className="flex items-center gap-3 text-sm text-gray-600">
+								<div className="w-2 h-2 bg-red-400 rounded-full" />
+								<span>Nota clínica gerada pela IA</span>
+							</div>
+							<div className="flex items-center gap-3 text-sm text-gray-600">
+								<div className="w-2 h-2 bg-red-400 rounded-full" />
+								<span>Todas as personalizações feitas</span>
+							</div>
+							<div className="flex items-center gap-3 text-sm text-gray-600">
+								<div className="w-2 h-2 bg-red-400 rounded-full" />
+								<span>Registro da sessão de {duration} minutos</span>
+							</div>
+						</div>
+
+						{/* Pergunta de confirmação */}
+						<div className="text-center py-2">
+							<p className="text-lg font-semibold text-gray-900">
+								Tem certeza que deseja continuar?
+							</p>
+						</div>
+					</div>
+
+					{/* Botões de ação */}
+					<div className="px-8 py-6 bg-gray-50 flex gap-4">
+						<button
+							onClick={handleCancelDiscard}
+							className="flex-1 px-6 py-3 bg-white border border-gray-200 text-gray-700 rounded-2xl font-medium hover:bg-gray-50 transition-all duration-200 hover:shadow-md"
+						>
+							Cancelar
+						</button>
+						<button
+							onClick={handleConfirmDiscard}
+							className="flex-1 px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-2xl font-semibold hover:from-red-600 hover:to-red-700 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+						>
+							Sim, descartar
+						</button>
+					</div>
+				</div>
+			</div>
+		);
+	};
+
 	return (
 		<div className="relative min-h-screen bg-gradient-to-br from-[#F8FAFC] via-[#EEF2FF] to-[#F4F3FF] px-4 py-10">
 			<div
@@ -372,29 +465,39 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
 			/>
 
 			<div className="relative mx-auto flex max-w-6xl flex-col gap-8">
-				<header className="rounded-3xl border border-white/70 bg-white/70 px-8 py-6 shadow-[0_32px_80px_-48px_rgba(15,23,42,0.45)] backdrop-blur">
+				<header className="rounded-3xl border border-white/70 bg-white/80 px-8 py-6 shadow-[0_32px_80px_-48px_rgba(15,23,42,0.45)] backdrop-blur-xl">
 					<div className="flex flex-wrap items-center justify-between gap-6">
 						<div className="flex items-center gap-4">
-							<span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4F46E5] to-[#6366F1] text-white shadow-[0_18px_38px_-24px_rgba(79,70,229,0.65)]">
-								<FileText className="h-6 w-6" aria-hidden="true" />
-							</span>
+							<div className="relative">
+								<span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#4F46E5] via-[#6366F1] to-[#8B5CF6] text-white shadow-[0_18px_38px_-24px_rgba(79,70,229,0.65)]">
+									<FileText className="h-7 w-7" aria-hidden="true" />
+								</span>
+								<div className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full flex items-center justify-center">
+									<Check className="h-2.5 w-2.5 text-white" />
+								</div>
+							</div>
 							<div>
-								<h1 className="text-2xl font-semibold text-[#0F172A]">Sessão finalizada</h1>
-								<p className="text-sm text-[#64748B]">Revise, personalize os detalhes gerados automaticamente e salve.</p>
+								<h1 className="text-2xl font-bold text-[#0F172A] flex items-center gap-2">
+									Sessão finalizada
+									<span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-lg">
+										Processada
+									</span>
+								</h1>
+								<p className="text-sm text-[#64748B] mt-1">Revise, personalize os detalhes gerados automaticamente e salve no prontuário.</p>
 							</div>
 						</div>
 						<div className="flex flex-wrap gap-3 text-sm text-[#1E293B]">
-							<span className="inline-flex min-w-[160px] items-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white px-4 py-2">
-								<User className="h-4 w-4 text-[#6366F1]" aria-hidden="true" />
-								<span className="font-medium">{sessionData.patient_name}</span>
+							<span className="inline-flex min-w-[160px] items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 shadow-sm">
+								<User className="h-4 w-4 text-blue-600" aria-hidden="true" />
+								<span className="font-semibold text-blue-900">{sessionData.patient_name}</span>
 							</span>
-							<span className="inline-flex min-w-[140px] items-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white px-4 py-2">
-								<Calendar className="h-4 w-4 text-[#6366F1]" aria-hidden="true" />
-								<span>{date}</span>
+							<span className="inline-flex min-w-[140px] items-center gap-2 rounded-2xl border border-purple-200 bg-purple-50 px-4 py-3 shadow-sm">
+								<Calendar className="h-4 w-4 text-purple-600" aria-hidden="true" />
+								<span className="font-medium text-purple-900">{date}</span>
 							</span>
-							<span className="inline-flex min-w-[140px] items-center gap-2 rounded-2xl border border-[#E2E8F0] bg-white px-4 py-2">
-								<TrendingUp className="h-4 w-4 text-[#6366F1]" aria-hidden="true" />
-								<span>{sessionData.duration_minutes} min</span>
+							<span className="inline-flex min-w-[140px] items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-sm">
+								<TrendingUp className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+								<span className="font-semibold text-emerald-900">{sessionData.duration_minutes} min</span>
 							</span>
 						</div>
 					</div>
@@ -404,9 +507,9 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
 					<NoteAIDisclaimer show={showAIDisclaimer} />
 
 					<div className="space-y-2">
-						<SectionHeader id="resumo" icon={Activity} title="Resumo executivo" color="bg-[#4F46E5]" />
+						<SectionHeader id="resumo" icon={Activity} title="Resumo executivo" color="bg-gradient-to-r from-[#4F46E5] to-[#6366F1]" />
 						{expandedSections.has("resumo") ? (
-							<div className="space-y-5 rounded-3xl border border-white/70 bg-white/80 p-6 shadow-[0_28px_70px_-46px_rgba(15,23,42,0.45)] animate-fade-in">
+							<div className="space-y-6 rounded-3xl border border-white/70 bg-white/90 p-8 shadow-[0_28px_70px_-46px_rgba(15,23,42,0.45)] backdrop-blur-xl animate-fade-in">
 								<div className="rounded-2xl border border-[#E0E7FF] bg-[#EEF2FF] p-4">
 									<div className="flex items-center gap-2 text-sm font-semibold text-[#4F46E5]">
 										<AlertCircle className="h-4 w-4" aria-hidden="true" />
@@ -425,39 +528,60 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
 									/>
 								</div>
 								<div className="grid gap-4 md:grid-cols-2">
-									<div className="rounded-2xl border border-[#FECACA] bg-[#FEF2F2] p-4">
-										<p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#DC2626]">Nível de dor (EVA)</p>
-										<div className="mt-2 flex items-end gap-2">
-											<input
-												type="number"
-												min={0}
-												max={10}
-												className="w-20 border-none bg-transparent text-4xl font-semibold text-[#DC2626] focus:outline-none"
-												value={note.resumoExecutivo.nivelDor}
-												onChange={(event) =>
-													setNote({
-														...note,
-														resumoExecutivo: { ...note.resumoExecutivo, nivelDor: Number(event.target.value) }
-													})
-												}
-											/>
-											<span className="pb-1 text-2xl text-[#DC2626]">/10</span>
+									<div className="rounded-2xl border border-[#FECACA] bg-gradient-to-br from-[#FEF2F2] to-[#FFEDD5] p-5 shadow-sm">
+										<p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#DC2626] mb-3">Nível de dor (EVA)</p>
+										<div className="space-y-3">
+											<div className="flex items-end gap-2">
+												<input
+													type="number"
+													min={0}
+													max={10}
+													className="w-20 border-none bg-transparent text-4xl font-bold text-[#DC2626] focus:outline-none"
+													value={note.resumoExecutivo.nivelDor}
+													onChange={(event) =>
+														setNote({
+															...note,
+															resumoExecutivo: { ...note.resumoExecutivo, nivelDor: Number(event.target.value) }
+														})
+													}
+												/>
+												<span className="pb-1 text-2xl font-medium text-[#DC2626]">/10</span>
+											</div>
+											{/* Barra de progresso visual */}
+											<div className="space-y-2">
+												<div className="w-full bg-red-100 rounded-full h-2.5">
+													<div 
+														className="bg-gradient-to-r from-red-400 to-red-600 h-2.5 rounded-full transition-all duration-300 ease-out"
+														style={{ width: `${(note.resumoExecutivo.nivelDor / 10) * 100}%` }}
+													/>
+												</div>
+												<div className="flex justify-between text-xs text-red-500 font-medium">
+													<span>Sem dor</span>
+													<span>Dor severa</span>
+												</div>
+											</div>
 										</div>
 									</div>
-									<div className="rounded-2xl border border-[#BBF7D0] bg-[#F0FDF4] p-4">
-										<p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#15803D]">Evolução</p>
-										<div className="mt-2 flex items-center gap-2">
-											<TrendingUp className="h-5 w-5 text-[#16A34A]" aria-hidden="true" />
-											<input
-												className="flex-1 border-none bg-transparent text-lg font-semibold text-[#166534] focus:outline-none"
-												value={note.resumoExecutivo.evolucao}
-												onChange={(event) =>
-													setNote({
-														...note,
-														resumoExecutivo: { ...note.resumoExecutivo, evolucao: event.target.value }
-													})
-												}
-											/>
+									<div className="rounded-2xl border border-[#BBF7D0] bg-gradient-to-br from-[#F0FDF4] to-[#ECFDF5] p-5 shadow-sm">
+										<p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#15803D] mb-3">Evolução do paciente</p>
+										<div className="space-y-3">
+											<div className="flex items-start gap-3">
+												<div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+													<TrendingUp className="h-4 w-4 text-[#16A34A]" aria-hidden="true" />
+												</div>
+												<textarea
+													className="flex-1 border-none bg-transparent text-sm font-medium text-[#166534] focus:outline-none resize-none placeholder-green-400"
+													placeholder="Descreva a evolução observada na sessão..."
+													value={note.resumoExecutivo.evolucao}
+													onChange={(event) =>
+														setNote({
+															...note,
+															resumoExecutivo: { ...note.resumoExecutivo, evolucao: event.target.value }
+														})
+													}
+													rows={3}
+												/>
+											</div>
 										</div>
 									</div>
 								</div>
@@ -846,59 +970,88 @@ const SessionSummary: React.FC<SessionSummaryProps> = ({
 					) : null}
 				</main>
 
-				<div className="sticky bottom-6 mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 rounded-3xl border border-white/70 bg-white/90 px-6 py-5 shadow-[0_32px_80px_-48px_rgba(15,23,42,0.45)] backdrop-blur">
-					<span className="text-sm text-[#64748B]">
-						<span className="font-semibold text-[#0F172A]">Sessão:</span> {sessionData.id}
-					</span>
-					<div className="flex flex-wrap gap-3">
-						<button
-							onClick={handleCopyNote}
-							className="inline-flex items-center gap-2 rounded-2xl border border-[#E2E8F0] px-4 py-2 text-sm font-medium text-[#475569] transition-colors hover:bg-[#F8FAFC]"
-						>
-							{copied ? (
-								<>
-									<Check className="h-4 w-4 text-[#22C55E]" aria-hidden="true" />
-									<span className="text-[#047857]">Copiado!</span>
-								</>
-							) : (
-								<>
-									<Copy className="h-4 w-4" aria-hidden="true" />
-									<span>Copiar nota</span>
-								</>
-							)}
-						</button>
-						<button className="inline-flex items-center gap-2 rounded-2xl border border-transparent bg-[#EEF2FF] px-4 py-2 text-sm font-medium text-[#4F46E5] transition-transform hover:-translate-y-0.5">
-							<Download className="h-4 w-4" aria-hidden="true" />
-							Exportar PDF
-						</button>
-						<button
-							onClick={handleSaveClick}
-							disabled={isSaving}
-							className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#22C55E] to-[#16A34A] px-5 py-2 text-sm font-semibold text-white shadow-[0_22px_45px_-28px_rgba(34,197,94,0.55)] transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
-						>
-							{isSaving ? (
-								<>
-									<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-									Salvando no prontuário...
-								</>
-							) : (
-								<>
-									<Save className="h-4 w-4" aria-hidden="true" />
-									Salvar sessão
-								</>
-							)}
-						</button>
-						<button
-							onClick={handleClose}
-							disabled={isSaving}
-							className="btn-cancel rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed"
-						>
-							<X className="h-4 w-4" aria-hidden="true" />
-							Descartar
-						</button>
+				<div className="sticky bottom-6 mx-auto w-full max-w-6xl">
+					{/* Barra de ações melhorada */}
+					<div className="rounded-3xl border border-white/70 bg-white/95 shadow-[0_32px_80px_-48px_rgba(15,23,42,0.55)] backdrop-blur-xl">
+						{/* Header da barra com informações da sessão */}
+						<div className="px-6 py-4 border-b border-gray-100">
+							<div className="flex items-center justify-between">
+								<div className="flex items-center gap-4">
+									<div className="flex items-center gap-2">
+										<div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+										<span className="text-sm font-medium text-gray-700">Sessão processada</span>
+									</div>
+									<span className="text-xs text-gray-500 font-mono">ID: {sessionData.id.slice(-8)}</span>
+								</div>
+								<div className="text-xs text-gray-500">
+									{transcription.length > 0 ? `${transcription.length} segmentos transcritos` : 'Sem transcrição'}
+								</div>
+							</div>
+						</div>
+
+						{/* Botões de ação */}
+						<div className="px-6 py-5">
+							<div className="flex flex-wrap items-center justify-between gap-4">
+								{/* Ações secundárias */}
+								<div className="flex flex-wrap gap-3">
+									<button
+										onClick={handleCopyNote}
+										className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-100 hover:shadow-md"
+									>
+										{copied ? (
+											<>
+												<Check className="h-4 w-4 text-green-600" aria-hidden="true" />
+												<span className="text-green-700">Copiado!</span>
+											</>
+										) : (
+											<>
+												<Copy className="h-4 w-4" aria-hidden="true" />
+												<span>Copiar nota</span>
+											</>
+										)}
+									</button>
+									<button className="inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-medium text-blue-700 transition-all duration-200 hover:bg-blue-100 hover:shadow-md hover:-translate-y-0.5">
+										<Download className="h-4 w-4" aria-hidden="true" />
+										Exportar PDF
+									</button>
+								</div>
+
+								{/* Ações primárias */}
+								<div className="flex gap-3">
+									<button
+										onClick={handleClose}
+										disabled={isSaving}
+										className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-5 py-2.5 text-sm font-medium text-red-700 transition-all duration-200 hover:bg-red-100 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+									>
+										<Trash2 className="h-4 w-4" aria-hidden="true" />
+										Descartar
+									</button>
+									<button
+										onClick={handleSaveClick}
+										disabled={isSaving}
+										className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-[#22C55E] to-[#16A34A] px-6 py-2.5 text-sm font-semibold text-white shadow-[0_22px_45px_-28px_rgba(34,197,94,0.55)] transition-all duration-200 hover:shadow-xl hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+									>
+										{isSaving ? (
+											<>
+												<div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+												Salvando no prontuário...
+											</>
+										) : (
+											<>
+												<Save className="h-4 w-4" aria-hidden="true" />
+												Salvar no prontuário
+											</>
+										)}
+									</button>
+								</div>
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>
+
+			{/* Modal de descarte */}
+			<DiscardModal />
 		</div>
 	);
 };

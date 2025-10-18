@@ -52,7 +52,7 @@ const Sidebar = () => {
   };
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-72 bg-gradient-to-b from-white via-white to-gray-50/50 z-50 flex flex-col border-r border-gray-200/60 shadow-[4px_0_24px_-8px_rgba(0,0,0,0.08)]">
+    <aside className="fixed left-0 top-0 h-screen w-72 bg-white z-50 flex flex-col border-r border-gray-200/60 shadow-[4px_0_24px_-8px_rgba(0,0,0,0.08)]">
       {/* Ambient Background Effects */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-24 -left-24 h-64 w-64 rounded-full bg-gradient-to-br from-[#4f46e5]/8 via-[#6366f1]/5 to-transparent blur-3xl" />
@@ -124,7 +124,7 @@ const Sidebar = () => {
       </nav>
 
       {/* Footer Section */}
-      <div className="relative z-10 p-4 space-y-3 border-t border-gray-200/60 bg-gradient-to-t from-gray-50/80 to-transparent">
+      <div className="relative z-10 p-4 space-y-3 border-t border-gray-200/60 bg-white">
         {/* Support Card */}
         <div className="rounded-2xl border border-indigo-200/60 bg-gradient-to-br from-indigo-50/80 to-purple-50/60 p-4 shadow-sm">
           <div className="flex items-start gap-2.5 mb-3">

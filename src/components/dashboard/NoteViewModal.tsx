@@ -220,101 +220,173 @@ DOR: ${mockNote.resumoExecutivo.nivelDor}/10
     return (
       <button
         onClick={() => toggleSection(id)}
-        className="w-full flex items-center justify-between p-4 bg-[#F8FAFC] hover:bg-[#EEF2FF] rounded-lg transition-colors border border-transparent hover:border-[#E0E7FF]"
+        className="group w-full flex items-center justify-between p-5 bg-white/80 hover:bg-white/90 rounded-2xl transition-all duration-300 border border-white/60 hover:border-white/80 shadow-sm hover:shadow-lg backdrop-blur-sm"
       >
-        <div className="flex items-center space-x-3">
-          <div className={`w-10 h-10 ${color} rounded-lg flex items-center justify-center shadow-sm`}>
-            <Icon className="w-5 h-5 text-white" />
+        <div className="flex items-center space-x-4">
+          <div className={`w-12 h-12 ${color} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+            <Icon className="w-6 h-6 text-white" strokeWidth={2.5} />
           </div>
-          <h3 className="text-lg font-semibold text-[#111827]">{title}</h3>
+          <h3 className="text-xl font-bold text-[#111827] group-hover:text-[#4F46E5] transition-colors duration-300">{title}</h3>
         </div>
-        {isExpanded ? (
-          <ChevronUp className="w-5 h-5 text-[#94A3B8]" />
-        ) : (
-          <ChevronDown className="w-5 h-5 text-[#94A3B8]" />
-        )}
+        <div className="flex items-center space-x-3">
+          {isExpanded && (
+            <span className="text-xs font-medium text-[#4F46E5] bg-[#EEF2FF] px-3 py-1 rounded-full">
+              Expandido
+            </span>
+          )}
+          <div className="w-8 h-8 bg-gray-100 group-hover:bg-[#EEF2FF] rounded-lg flex items-center justify-center transition-colors duration-300">
+            {isExpanded ? (
+              <ChevronUp className="w-5 h-5 text-[#94A3B8] group-hover:text-[#4F46E5] transition-colors duration-300" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-[#94A3B8] group-hover:text-[#4F46E5] transition-colors duration-300" />
+            )}
+          </div>
+        </div>
       </button>
     );
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-slide-up-modal">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl animate-fade-in">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-slide-up-modal border border-white/20">
         
-        {/* Header */}
-    <div className="bg-gradient-to-r from-[#4F46E5] via-[#6366F1] to-[#8B5CF6] p-6 text-white">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-                <FileText className="w-6 h-6" />
+        {/* Header aprimorado */}
+        <div className="relative bg-gradient-to-br from-[#4F46E5] via-[#6366F1] to-[#8B5CF6] p-8 text-white overflow-hidden">
+          {/* Background effects */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.3),transparent_70%)]" />
+          <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+          <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-purple-300/20 rounded-full blur-2xl" />
+          
+          <div className="relative z-10">
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-white/30 rounded-2xl blur-md" />
+                  <div className="relative w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/30">
+                    <FileText className="w-8 h-8" />
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-400 rounded-full flex items-center justify-center shadow-lg">
+                    <Check className="w-3 h-3 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <h2 className="text-3xl font-bold text-white mb-1">Nota de Evolução</h2>
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center px-3 py-1 bg-white/20 text-white/90 text-sm font-medium rounded-full backdrop-blur-sm">
+                      🤖 Resumo Inteligente da Sessão
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div>
-                <h2 className="text-2xl font-bold">Nota de Evolução</h2>
-                <p className="text-indigo-100 text-sm">Resumo Inteligente da Sessão</p>
-              </div>
+              <button
+                onClick={onClose}
+                className="relative p-3 hover:bg-white/20 rounded-2xl transition-all duration-300 hover:scale-110 hover:rotate-90"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
 
-          {/* Session Info */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white/10 backdrop-blur-sm rounded-lg p-4">
-            <div className="flex items-center space-x-2">
-              <User className="w-5 h-5 text-indigo-200" />
-              <div>
-                <div className="text-xs text-indigo-200">Paciente</div>
-                <div className="font-semibold">{sessionData.patient_name}</div>
+            {/* Session Info aprimorado */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-300">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                    <User className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-white/70 font-medium uppercase tracking-wider">Paciente</div>
+                    <div className="font-semibold text-white text-lg">{sessionData.patient_name}</div>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Calendar className="w-5 h-5 text-indigo-200" />
-              <div>
-                <div className="text-xs text-indigo-200">Data</div>
-                <div className="font-semibold">{date}</div>
+              <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-300">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                    <Calendar className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-white/70 font-medium uppercase tracking-wider">Data</div>
+                    <div className="font-semibold text-white text-lg">{date}</div>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Clock className="w-5 h-5 text-indigo-200" />
-              <div>
-                <div className="text-xs text-indigo-200">Duração</div>
-                <div className="font-semibold">{sessionData.duration_minutes} minutos</div>
+              <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 border border-white/20 hover:bg-white/20 transition-all duration-300">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                    <Clock className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-white/70 font-medium uppercase tracking-wider">Duração</div>
+                    <div className="font-semibold text-white text-lg">{sessionData.duration_minutes} min</div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        {/* Content aprimorado */}
+        <div className="flex-1 overflow-y-auto bg-gradient-to-br from-[#F8FAFC] via-[#EEF2FF] to-[#F4F3FF] relative">
+          {/* Background effects */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(79,70,229,0.08),transparent_50%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(139,92,246,0.08),transparent_50%)]" />
+          
+          <div className="relative z-10 p-8 space-y-6">
           
           {/* Resumo Executivo */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <SectionHeader id="resumo" icon={Activity} title="Resumo Executivo" color="bg-gradient-to-br from-[#4F46E5] to-[#6366F1]" />
             {expandedSections.has('resumo') && (
-              <div className="p-4 space-y-4 animate-fade-in">
-                <div className="bg-[#EEF2FF] border-l-4 border-[#4F46E5] p-4 rounded-r-lg">
-                  <div className="flex items-start space-x-3">
-                    <AlertCircle className="w-5 h-5 text-[#4F46E5] flex-shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-semibold text-[#111827] mb-1">Queixa Principal</div>
-                      <p className="text-[#64748B]">{mockNote.resumoExecutivo.queixaPrincipal}</p>
+              <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-white/60 p-6 space-y-6 animate-fade-in shadow-lg">
+                <div className="bg-gradient-to-r from-[#EEF2FF] to-[#E0E7FF] border-l-4 border-[#4F46E5] p-5 rounded-r-2xl">
+                  <div className="flex items-start space-x-4">
+                    <div className="w-10 h-10 bg-[#4F46E5] rounded-xl flex items-center justify-center flex-shrink-0">
+                      <AlertCircle className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-bold text-[#111827] mb-2 text-lg">Queixa Principal</div>
+                      <p className="text-[#64748B] leading-relaxed">{mockNote.resumoExecutivo.queixaPrincipal}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-                    <div className="text-sm text-red-600 font-medium mb-1">Nível de Dor (EVA)</div>
-                    <div className="text-3xl font-bold text-red-600">{mockNote.resumoExecutivo.nivelDor}/10</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Nível de dor aprimorado */}
+                  <div className="bg-gradient-to-br from-red-50 to-orange-50 p-6 rounded-2xl border border-red-200 shadow-sm">
+                    <div className="text-sm text-red-600 font-bold mb-3 uppercase tracking-wider">Nível de Dor (EVA)</div>
+                    <div className="space-y-4">
+                      <div className="flex items-end gap-3">
+                        <div className="text-4xl font-black text-red-600">{mockNote.resumoExecutivo.nivelDor}</div>
+                        <div className="text-2xl font-bold text-red-500 pb-1">/10</div>
+                      </div>
+                      {/* Barra de progresso visual */}
+                      <div className="space-y-2">
+                        <div className="w-full bg-red-100 rounded-full h-3">
+                          <div 
+                            className="bg-gradient-to-r from-red-400 to-red-600 h-3 rounded-full transition-all duration-500 ease-out shadow-sm"
+                            style={{ width: `${(mockNote.resumoExecutivo.nivelDor / 10) * 100}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-xs text-red-500 font-semibold">
+                          <span>Sem dor</span>
+                          <span>Dor severa</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                    <div className="text-sm text-green-600 font-medium mb-1">Evolução</div>
-                    <div className="flex items-center space-x-2">
-                      <TrendingUp className="w-6 h-6 text-green-600" />
-                      <span className="text-lg font-semibold text-green-600">{mockNote.resumoExecutivo.evolucao}</span>
+                  
+                  {/* Evolução aprimorada */}
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-2xl border border-green-200 shadow-sm">
+                    <div className="text-sm text-green-600 font-bold mb-3 uppercase tracking-wider">Evolução do Paciente</div>
+                    <div className="space-y-3">
+                      <div className="flex items-start space-x-3">
+                        <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center shadow-sm">
+                          <TrendingUp className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-green-800 font-semibold leading-relaxed">{mockNote.resumoExecutivo.evolucao}</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -559,52 +631,77 @@ DOR: ${mockNote.resumoExecutivo.nivelDor}/10
               <p className="text-[#64748B]"><strong className="text-[#4F46E5] font-semibold">Foco:</strong> {mockNote.proximaSessao.foco}</p>
             </div>
           </div>
+          </div>
         </div>
 
-        {/* Footer */}
-        <div className="border-t border-[#E2E8F0] p-4 bg-[#F8FAFC] flex justify-between items-center">
-          <div className="text-sm text-[#64748B]">
-            <span className="font-medium text-[#111827]">ID da Sessão:</span> {sessionData.id}
+        {/* Footer aprimorado */}
+        <div className="border-t border-gray-200/60 bg-white/95 backdrop-blur-xl">
+          {/* Header do footer */}
+          <div className="px-8 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                  <span className="text-sm font-semibold text-gray-700">Nota processada</span>
+                </div>
+                <span className="text-xs text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded-md">
+                  ID: {sessionData.id.slice(-8)}
+                </span>
+              </div>
+              <div className="text-xs text-gray-500">
+                Gerada automaticamente pela IA
+              </div>
+            </div>
           </div>
-          <div className="flex space-x-3">
-            <button
-              onClick={handleCopyNote}
-              className="flex items-center space-x-2 px-4 py-2 border border-[#CBD5E1] text-[#64748B] rounded-lg hover:bg-[#E2E8F0]/60 transition-colors"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4 text-green-600" />
-                  <span className="text-green-600">Copiado!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4" />
-                  <span>Copiar Nota</span>
-                </>
-              )}
-            </button>
-            <button className="flex items-center space-x-2 px-4 py-2 bg-[#4F46E5] text-white rounded-lg hover:bg-[#6366F1] transition-colors shadow-sm">
-              <Download className="w-4 h-4" />
-              <span>Exportar PDF</span>
-            </button>
-            
-            {/* Mostrar botão Salvar apenas quando solicitado (após gravação) */}
-            {showSaveButton && onSaveSession ? (
-              <button
-                onClick={onSaveSession}
-                className="flex items-center space-x-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-lg font-semibold"
-              >
-                <Save className="w-4 h-4" />
-                <span>Salvar Sessão</span>
-              </button>
-            ) : null}
-            
-            <button
-              onClick={onClose}
-              className="btn-cancel rounded-lg px-4 py-2"
-            >
-              {showSaveButton ? 'Descartar' : 'Fechar'}
-            </button>
+
+          {/* Botões de ação */}
+          <div className="px-8 py-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              {/* Ações secundárias */}
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={handleCopyNote}
+                  className="flex items-center space-x-2 px-5 py-3 border border-gray-200 bg-gray-50 text-gray-700 rounded-2xl hover:bg-gray-100 hover:shadow-md transition-all duration-200 font-medium"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-4 h-4 text-green-600" />
+                      <span className="text-green-600">Copiado!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>Copiar Nota</span>
+                    </>
+                  )}
+                </button>
+                <button className="flex items-center space-x-2 px-5 py-3 bg-gradient-to-r from-[#4F46E5] to-[#6366F1] text-white rounded-2xl hover:from-[#6366F1] hover:to-[#8B5CF6] transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 font-semibold">
+                  <Download className="w-4 h-4" />
+                  <span>Exportar PDF</span>
+                </button>
+              </div>
+
+              {/* Ações primárias */}
+              <div className="flex gap-3">
+                {/* Mostrar botão Salvar apenas quando solicitado (após gravação) */}
+                {showSaveButton && onSaveSession ? (
+                  <button
+                    onClick={onSaveSession}
+                    className="flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-2xl hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 font-bold"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>Salvar Sessão</span>
+                  </button>
+                ) : null}
+                
+                <button
+                  onClick={onClose}
+                  className="px-5 py-3 border border-gray-200 bg-white text-gray-700 rounded-2xl hover:bg-gray-50 hover:shadow-md transition-all duration-200 font-medium"
+                >
+                  {showSaveButton ? 'Descartar' : 'Fechar'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
