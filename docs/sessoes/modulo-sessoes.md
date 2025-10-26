@@ -1,104 +1,123 @@
-# Sistema de Sessão de Fisioterapia
+# 📝 Módulo de Sessões - PhysioNote.AI
+
+**Última atualização:** 26 de outubro de 2025  
+**Status:** ✅ **COMPLETO E FUNCIONAL**
+
+---
 
 ## 📋 Visão Geral
 
-O módulo de Sessão do PhysioNote.AI permite realizar consultas de fisioterapia com gravação de áudio, transcrição em tempo real e geração automática de relatórios estruturados.
+O módulo de Sessões é o **core do sistema PhysioNote.AI**. Permite realizar consultas de fisioterapia com gravação de áudio ao vivo, transcrição automática com Whisper-1, geração de notas clínicas estruturadas com GPT-4o, e salvamento no prontuário do paciente.
+
+### ⚠️ Arquitetura Crítica: Fluxo de Duas Fases
+
+**PRINCÍPIO FUNDAMENTAL:** Sessões só são salvas no banco de dados **APÓS revisão e confirmação do usuário**.
+
+```
+Fase 1: PROCESSAR (process-temp) → Gera nota temporária
+Fase 2: SALVAR (save) → Cria Session + Note no banco
+```
+
+**Motivo:** Garantir que apenas notas revisadas e precisas sejam registradas no prontuário do paciente.
+
+---
 
 ## 🎯 Funcionalidades Implementadas
 
-### 1. **Seleção de Paciente**
-- ✅ Seletor dropdown com busca
-- ✅ Lista de pacientes com última sessão
-- ✅ Busca em tempo real
-- ✅ Interface intuitiva com avatares
+### 1. **Seleção de Paciente** ✅ Completo
+- ✅ Componente PatientSelector com dropdown e busca
+- ✅ Lista de pacientes com última sessão exibida
+- ✅ Busca em tempo real (filtra por nome)
+- ✅ Interface com avatares (iniciais coloridas)
+- ✅ Auto-seleção via URL params (patientId + patientName)
+- ✅ Validação: não permite iniciar sem paciente selecionado
 
-### 2. **Gravação de Sessão**
-- ✅ Gravação de áudio através do navegador
-- ✅ Timer em tempo real (HH:MM:SS)
-- ✅ Controles de pausar/retomar
-- ✅ Botão de finalizar sessão
-- ✅ Indicador visual de status (gravando/pausado)
+### 2. **Gravação de Áudio** ✅ Completo
+- ✅ MediaRecorder API (WebRTC) - formato: `audio/webm;codecs=opus`
+- ✅ Captura em chunks a cada 1 segundo
+- ✅ Timer em tempo real (formato HH:MM:SS)
+- ✅ Botão "Parar Gravação" (finaliza e processa)
+- ✅ Indicador visual de status (animação Lottie pulsando)
 - ✅ Animações suaves e feedback visual
+- ✅ Tratamento de permissões de microfone
+- ✅ Auto-início após seleção de paciente (via URL params)
 
-### 3. **Transcrição em Tempo Real**
-- ✅ Painel de transcrição ao vivo
-- ✅ Segmentos numerados
-- ✅ Auto-scroll para novos conteúdos
-- ✅ Contador de segmentos transcritos
-- ✅ Interface dividida (controles + transcrição)
+### 3. **Processamento com IA** ✅ Completo
+**Endpoint:** `POST /api/sessions/process-temp`
 
-### 4. **Resumo da Sessão**
-- ✅ Visualização completa da transcrição
-- ✅ Informações da sessão (paciente, duração, segmentos)
-- ✅ Campos editáveis:
-  - Diagnóstico/Avaliação
-  - Tratamento Realizado
-  - Orientações e Próximos Passos
-  - Observações Gerais
-- ✅ Exportação para PDF (preparado)
-- ✅ Salvar ou descartar sessão
+**Fluxo:**
+1. Recebe audioBlob + metadados (patientId, sessionType, specialty)
+2. Salva áudio em `/temp` (temporário)
+3. **Transcreve com Whisper-1** (OpenAI Audio API)
+   - Modelo: `whisper-1`
+   - Idioma: `pt` (português)
+   - Response format: `verbose_json`
+4. **Gera nota com GPT-4o** (OpenAI Chat API)
+   - Modelo: `gpt-4o`
+   - Temperature: `0.3` (baixa = mais preciso)
+   - Response format: `json_object` (structured output)
+   - Prompt: Geração de nota clínica fisioterapêutica estruturada
+5. Deleta arquivo temporário
+6. Retorna: `{ transcription, note, success: true }`
+7. **NÃO salva no banco de dados**
 
-## 🎨 Interface e UX
+**Custo estimado:** ~$0.33 por sessão de 30 minutos
 
-### Layout Principal (Durante Gravação)
+### 4. **Visualização e Edição de Nota** ✅ Completo
+**Componente:** `SessionSummary_fullscreen.tsx` (1060 linhas)
 
-```
-┌─────────────────────────────────────────────────┐
-│ Header: Paciente | Timer | Cancelar            │
-├──────────────────────┬──────────────────────────┤
-│  Painel Esquerdo     │  Painel Direito         │
-│  (Azul Gradiente)    │  (Transcrição)          │
-│                      │                          │
-│  ⏱️ 00:15:32         │  📝 Transcrição          │
-│  🔴 Gravando         │                          │
-│                      │  1. Texto...             │
-│       🎤             │  2. Texto...             │
-│    (Pulsando)        │  3. Texto...             │
-│                      │                          │
-│   ⏸️  ⏹️            │  Auto-scroll             │
-│                      │                          │
-└──────────────────────┴──────────────────────────┘
-```
+**Estrutura da nota clínica:**
+- ✅ **Resumo Executivo**: Queixa principal, nível de dor (0-10), evolução
+- ✅ **Anamnese**: Histórico atual, antecedentes, medicamentos, objetivos
+- ✅ **Diagnóstico Fisioterapêutico**: Principal, secundários, CIF
+- ✅ **Intervenções**: Técnicas manuais, exercícios terapêuticos, recursos eletrotermofototerapêuticos
+- ✅ **Resposta ao Tratamento**: Imediata, efeitos, feedback
+- ✅ **Orientações**: Domiciliares, ergonômicas, precauções
+- ✅ **Plano de Tratamento**: Frequência, duração, objetivos (curto/longo prazo), critérios de alta
+- ✅ **Observações Adicionais**: Campo livre para anotações
+- ✅ **Próxima Sessão**: Data sugerida, foco
 
-### Fluxo de Uso
+**Features:**
+- ✅ Todas as seções expansíveis/colapsáveis
+- ✅ Todos os campos editáveis (inline editing)
+- ✅ Arrays editáveis (adicionar/remover itens)
+- ✅ Transcrição completa exibida em seção separada
+- ✅ Normalização automática da nota da API (compatibilidade)
+- ✅ Fallback para mock data se API falhar
+- ✅ Disclaimer de IA (aviso sobre revisão obrigatória)
 
-```
-1. Seleção de Paciente
-   ↓
-2. Iniciar Sessão
-   ↓
-3. Gravação + Transcrição
-   ↓
-4. Finalizar Sessão
-   ↓
-5. Revisar e Complementar
-   ↓
-6. Salvar Relatório
-```
+### 5. **Salvamento no Prontuário** ✅ Completo
+**Endpoint:** `POST /api/sessions/save`
 
-## 📁 Estrutura de Arquivos
+**Fluxo:**
+1. Recebe dados revisados: patientId, transcription, note (JSON), sessionData, audioBlob
+2. Verifica se paciente existe
+3. **Move áudio de `/temp` para `/uploads/audio/`** (storage permanente)
+4. Cria `Session` no banco:
+   - `status: 'completed'` (visível no prontuário)
+   - Inclui: audioUrl, audioSize, transcription, durationMin, sessionType, specialty
+5. Cria `Note` no banco vinculada à sessão:
+   - `contentJson`: nota estruturada em JSON
+   - `aiGenerated: true`
+   - `aiModel: 'gpt-4o'`
+   - `aiPromptUsed`: registro do prompt para auditoria
+6. **Transação atômica:** Session + Note criados juntos ou falha total
+7. Retorna: `{ success: true, sessionId, noteId }`
 
-```
-src/
-├── app/
-│   └── dashboard/
-│       └── session/
-│           └── page.tsx              # Página principal de sessão
-├── components/
-│   └── session/
-│       ├── SessionView.tsx           # Container principal
-│       ├── PatientSelector.tsx       # Seletor de pacientes
-│       ├── TranscriptionPanel.tsx    # Painel de transcrição
-│       ├── SessionSummary.tsx        # Resumo final
-│       └── index.ts                  # Exports
-```
+**⚠️ CRÍTICO:** Esta é a **ÚNICA rota** que cria registros de sessão no banco de dados.
 
-## 🔧 Componentes Detalhados
+### 6. **Cancelamento de Sessão** ✅ Completo
+- ✅ Botão "Cancelar" em cada tela
+- ✅ Confirmação antes de descartar
+- ✅ Limpeza de estados e memória
+- ✅ Redirecionamento para `/dashboard`
+- ✅ Áudio temporário é descartado (não salvo)
 
-### **SessionView.tsx**
-Container principal que gerencia todo o fluxo da sessão.
+---
 
-**Estados:**
+## 🗄️ Modelos de Dados (Prisma)
+
+### Session
 ```typescript
 - sessionStarted: boolean          // Sessão foi iniciada?
 - selectedPatient: Patient | null  // Paciente selecionado
