@@ -2,6 +2,35 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { openai, GPT_MODEL } from '@/server/openai';
 
+type SessionWithNote = {
+  id: string;
+  patientId: string;
+  date: Date;
+  durationMin: number | null;
+  sessionType: string | null;
+  specialty: string | null;
+  motivation: string | null;
+  audioUrl: string | null;
+  audioSize: number | null;
+  transcription: string | null;
+  status: string;
+  errorMessage: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  note: {
+    id: string;
+    sessionId: string;
+    contentJson: string;
+    aiGenerated: boolean;
+    aiModel: string | null;
+    aiPromptUsed: string | null;
+    reviewedBy: string | null;
+    reviewedAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
+};
+
 // GET - Buscar resumo existente
 export async function GET(
   request: NextRequest,
@@ -84,7 +113,7 @@ export async function POST(
     }
 
     // Preparar dados das sessões para o prompt
-    const sessionsData = patient.sessions.map((session, index) => {
+    const sessionsData = patient.sessions.map((session: SessionWithNote, index: number) => {
       const noteContent = session.note ? JSON.parse(session.note.contentJson) : {};
       const sessionDate = new Date(session.date).toLocaleDateString('pt-BR');
 
@@ -190,7 +219,7 @@ Crie um resumo clínico profissional seguindo esta estrutura:
       where: { patientId },
     });
 
-    const sessionsIds = patient.sessions.map((s) => s.id);
+    const sessionsIds = patient.sessions.map((s: SessionWithNote) => s.id);
 
     let summary;
 

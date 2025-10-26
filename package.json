@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:ci": "cross-env OPENAI_API_KEY=sk-build-placeholder next build",
     "start": "next start",
     "lint": "next lint"
   },

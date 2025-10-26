@@ -4,6 +4,34 @@ import { z } from 'zod';
 
 export const runtime = 'nodejs';
 
+type SessionWithPatientAndNote = {
+  id: string;
+  patientId: string;
+  date: Date;
+  durationMin: number | null;
+  sessionType: string | null;
+  specialty: string | null;
+  motivation: string | null;
+  audioUrl: string | null;
+  audioSize: number | null;
+  transcription: string | null;
+  status: string;
+  errorMessage: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  patient: {
+    id: string;
+    name: string;
+    email: string | null;
+    phone: string | null;
+  };
+  note: {
+    id: string;
+    aiGenerated: boolean;
+    aiModel: string | null;
+  } | null;
+};
+
 // Schema de validação para criação de sessão
 const SessionCreateSchema = z.object({
   patientId: z.string().min(1, 'ID do paciente é obrigatório'),
@@ -106,7 +134,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Transform data to match frontend expectations
-    const transformedSessions = sessions.map((session) => ({
+    const transformedSessions = sessions.map((session: SessionWithPatientAndNote) => ({
       id: session.id,
       session_datetime: session.date.toISOString(),
       patient_name: session.patient.name,

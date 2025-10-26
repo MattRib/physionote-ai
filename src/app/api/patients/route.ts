@@ -4,6 +4,28 @@ import { z } from 'zod';
 
 export const runtime = 'nodejs';
 
+type PatientWithSessions = {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  cpf: string | null;
+  birthDate: Date | null;
+  gender: string | null;
+  street: string | null;
+  number: string | null;
+  complement: string | null;
+  neighborhood: string | null;
+  city: string | null;
+  state: string | null;
+  zipCode: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  sessions: {
+    date: Date;
+  }[];
+};
+
 const PatientCreate = z.object({
   name: z.string().min(2),
   email: z.string().email().optional(),
@@ -37,7 +59,7 @@ export async function GET() {
 
   // Transformar dados para incluir totalSessions e lastSession
   const patientsWithStats = await Promise.all(
-    patients.map(async (patient) => {
+    patients.map(async (patient: PatientWithSessions) => {
       const totalSessions = await prisma.session.count({
         where: { patientId: patient.id },
       });

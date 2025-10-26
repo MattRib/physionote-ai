@@ -75,30 +75,58 @@ PhysioNote.AI é uma plataforma moderna de gestão de prontuários eletrônicos 
 
 ## 🛠️ Como Começar
 
-### Pré-requisitos
-- Node.js 18+  
-- npm ou yarn
+### ⚡ Setup Rápido
 
-### Instalação
+📖 **Guia completo de setup:** [SETUP.md](./SETUP.md)
 
-1. Instale as dependências:
+**Resumo em 3 passos:**
+
+1. **Instalar dependências:**
 ```bash
 npm install
 ```
 
-2. Execute o servidor de desenvolvimento:
+2. **Configurar ambiente:**
 ```bash
-npm run dev
+# Criar .env.local com:
+DATABASE_URL="file:./.data/dev.db"
+OPENAI_API_KEY="sk-proj-YOUR_KEY_HERE"
 ```
 
-3. Abra [http://localhost:3000](http://localhost:3000) no seu navegador.
+3. **Inicializar banco:**
+```powershell
+New-Item -Path ".data" -ItemType Directory -Force
+$env:DATABASE_URL="file:./.data/dev.db"; npx prisma migrate deploy
+npx prisma generate
+```
+
+### Pré-requisitos
+- Node.js 18+  
+- npm ou yarn
+- Chave da OpenAI API ([obter aqui](https://platform.openai.com/api-keys))
 
 ### Build para Produção
 
+⚠️ **IMPORTANTE:** O build requer a variável `OPENAI_API_KEY` configurada.
+
+**Opção 1: Com chave real**
 ```bash
 npm run build
 npm start
 ```
+
+**Opção 2: Build CI/CD (sem chave real)**
+```bash
+npm run build:ci
+npm start
+```
+
+**Opção 3: PowerShell (temporário)**
+```powershell
+$env:OPENAI_API_KEY="sk-your-key"; npm run build
+```
+
+📖 **Documentação completa do build:** [docs/BUILD.md](./docs/BUILD.md)
 
 ### Executar com Tasks do VS Code
 

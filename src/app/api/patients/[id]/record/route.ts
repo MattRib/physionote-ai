@@ -3,6 +3,35 @@ import { prisma } from '@/server/db';
 
 export const runtime = 'nodejs';
 
+type SessionWithNote = {
+  id: string;
+  patientId: string;
+  date: Date;
+  durationMin: number | null;
+  sessionType: string | null;
+  specialty: string | null;
+  motivation: string | null;
+  audioUrl: string | null;
+  audioSize: number | null;
+  transcription: string | null;
+  status: string;
+  errorMessage: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  note: {
+    id: string;
+    sessionId: string;
+    contentJson: string;
+    aiGenerated: boolean;
+    aiModel: string | null;
+    aiPromptUsed: string | null;
+    reviewedBy: string | null;
+    reviewedAt: Date | null;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
+};
+
 /**
  * GET /api/patients/[id]/record
  * 
@@ -43,7 +72,7 @@ export async function GET(
     }
 
     // Processa as sessões para incluir notas parseadas
-    const sessionsWithParsedNotes = patient.sessions.map((session) => {
+    const sessionsWithParsedNotes = patient.sessions.map((session: SessionWithNote) => {
       let parsedNote = null;
 
       if (session.note && session.note.contentJson) {
@@ -82,10 +111,10 @@ export async function GET(
     // Calcula estatísticas
     const totalSessions = patient.sessions.length;
     const completedSessions = patient.sessions.filter(
-      (s) => s.status === 'completed'
+      (s: SessionWithNote) => s.status === 'completed'
     ).length;
     const totalDuration = patient.sessions.reduce(
-      (acc, s) => acc + (s.durationMin || 0),
+      (acc: number, s: SessionWithNote) => acc + (s.durationMin || 0),
       0
     );
 
