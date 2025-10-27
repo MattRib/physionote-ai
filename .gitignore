@@ -17,6 +17,10 @@ dist/
 *.sqlite
 *.sqlite-journal
 
+### Audio uploads (now using Cloudinary)
+uploads/
+temp/
+
 ### Logs
 npm-debug.log*
 yarn-debug.log*

@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import fs from 'fs';
-import path from 'path';
-import { promisify } from 'util';
-
-const writeFile = promisify(fs.writeFile);
-const mkdir = promisify(fs.mkdir);
+import { uploadAudioToCloudinary, isCloudinaryConfigured } from '@/server/cloudinary';
 
 export const runtime = 'nodejs';
 
@@ -69,23 +64,29 @@ export async function POST(req: NextRequest) {
     let audioUrl: string | null = null;
     let audioSize: number | null = null;
 
-    // Salvar áudio se fornecido
+    // Fazer upload do áudio para Cloudinary se fornecido
     if (audioFile) {
-      const audioDir = path.join(process.cwd(), 'uploads', 'audio');
-      await mkdir(audioDir, { recursive: true });
+      // Verificar se Cloudinary está configurado
+      if (!isCloudinaryConfigured()) {
+        return NextResponse.json(
+          { error: 'Cloudinary não está configurado. Verifique as variáveis de ambiente.' },
+          { status: 500 }
+        );
+      }
 
-      const timestamp = Date.now();
-      const fileName = `${patientId}-${timestamp}.webm`;
-      const filePath = path.join(audioDir, fileName);
+      console.log('[Save Session] Uploading audio to Cloudinary...');
+      console.log(`[Save Session] File: ${audioFile.name}, Size: ${(audioFile.size / 1024 / 1024).toFixed(2)}MB`);
 
       const arrayBuffer = await audioFile.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-      await writeFile(filePath, buffer);
 
-      audioUrl = `/uploads/audio/${fileName}`;
-      audioSize = audioFile.size;
+      // Upload para Cloudinary
+      const cloudinaryResult = await uploadAudioToCloudinary(buffer, audioFile.name);
 
-      console.log('[Save Session] Audio saved:', audioUrl);
+      audioUrl = cloudinaryResult.secureUrl;
+      audioSize = cloudinaryResult.size;
+
+      console.log('[Save Session] Audio uploaded to Cloudinary:', audioUrl);
     }
 
     // Criar sessão no banco de dados com status 'completed'

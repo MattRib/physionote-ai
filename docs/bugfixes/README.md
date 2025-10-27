@@ -4,6 +4,9 @@ Esta pasta contém a documentação de todas as correções de bugs implementada
 
 ## 📄 Arquivos
 
+### correcao-cloudinary-salvamento-local.md
+Correção de arquivos sendo salvos localmente mesmo com Cloudinary configurado.
+
 ### correcao-nota-ia-resumo.md
 Correção de problema na exibição de notas de IA no resumo do paciente.
 

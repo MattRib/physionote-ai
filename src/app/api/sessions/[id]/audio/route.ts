@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
-import { saveAudioFile } from '@/server/storage';
+import { uploadAudioToCloudinary, isCloudinaryConfigured } from '@/server/cloudinary';
 import { MAX_AUDIO_SIZE } from '@/server/openai';
 
 export const runtime = 'nodejs';
@@ -54,18 +54,26 @@ export async function POST(
       );
     }
 
-    // Converte para Buffer e salva
+    // Verifica se Cloudinary está configurado
+    if (!isCloudinaryConfigured()) {
+      return NextResponse.json(
+        { error: 'Cloudinary não está configurado. Verifique as variáveis de ambiente.' },
+        { status: 500 }
+      );
+    }
+
+    // Converte para Buffer e faz upload para Cloudinary
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const { filename, size } = await saveAudioFile(buffer, file.name);
+    const cloudinaryResult = await uploadAudioToCloudinary(buffer, file.name);
 
-    // Atualiza sessão com URL do áudio
+    // Atualiza sessão com URL do Cloudinary
     const updatedSession = await prisma.session.update({
       where: { id: sessionId },
       data: {
-        audioUrl: filename,
-        audioSize: size,
+        audioUrl: cloudinaryResult.secureUrl,
+        audioSize: cloudinaryResult.size,
         status: 'transcribing',
       },
     });

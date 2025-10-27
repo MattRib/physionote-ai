@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { transcribeAudio } from '@/server/transcription';
 import { generateNoteFromTranscription } from '@/server/note-generation';
-import { getAudioPath } from '@/server/storage';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // 5 minutos (Whisper + GPT podem demorar)
@@ -35,8 +34,9 @@ export async function POST(
       );
     }
 
-    // Caminho do áudio
-    const audioPath = getAudioPath(session.audioUrl);
+    // audioUrl pode ser uma URL do Cloudinary ou caminho local
+    // transcribeAudio() detecta automaticamente e processa corretamente
+    const audioPathOrUrl = session.audioUrl;
 
     // Atualiza status para "transcribing"
     await prisma.session.update({
@@ -47,7 +47,7 @@ export async function POST(
     console.log(`[${sessionId}] Iniciando transcrição...`);
 
     // 1. Transcrição com Whisper
-    const transcription = await transcribeAudio(audioPath, 'pt');
+    const transcription = await transcribeAudio(audioPathOrUrl, 'pt');
 
     console.log(`[${sessionId}] Transcrição concluída: ${transcription.text.substring(0, 100)}...`);
 

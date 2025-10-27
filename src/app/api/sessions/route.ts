@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 import { z } from 'zod';
+import { uploadAudioToCloudinary, isCloudinaryConfigured } from '@/server/cloudinary';
 
 export const runtime = 'nodejs';
 
@@ -267,16 +268,57 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Se for upload, salvar o arquivo e iniciar processamento
+    // Se for upload, salvar o arquivo no Cloudinary
     if (recordingMode === 'upload' && audioFile) {
-      // TODO: Implementar salvamento do arquivo e iniciar processamento
-      // 1. Salvar arquivo no storage (filesystem ou cloud)
-      // 2. Criar registro de transcrição
-      // 3. Iniciar processamento assíncrono (transcrição + geração de nota)
       console.log(`[Audio Upload] Session: ${session.id}, File: ${audioFile.name}, Size: ${audioFile.size} bytes`);
-      
-      // Por enquanto, apenas log - implementação completa será feita posteriormente
-      console.warn('[TODO] Implement audio file storage and processing');
+
+      // Verificar se Cloudinary está configurado
+      if (!isCloudinaryConfigured()) {
+        // Deletar sessão criada se falhar
+        await prisma.session.delete({ where: { id: session.id } });
+
+        return NextResponse.json(
+          { error: 'Cloudinary não está configurado. Verifique as variáveis de ambiente.' },
+          { status: 500 }
+        );
+      }
+
+      try {
+        // Converter arquivo para Buffer
+        const bytes = await audioFile.arrayBuffer();
+        const buffer = Buffer.from(bytes);
+
+        // Upload para Cloudinary
+        const cloudinaryResult = await uploadAudioToCloudinary(buffer, audioFile.name);
+
+        // Atualizar sessão com URL do Cloudinary
+        await prisma.session.update({
+          where: { id: session.id },
+          data: {
+            audioUrl: cloudinaryResult.secureUrl,
+            audioSize: cloudinaryResult.size,
+            status: 'transcribing',
+          },
+        });
+
+        console.log(`[Cloudinary Upload] Session: ${session.id}, URL: ${cloudinaryResult.secureUrl}`);
+      } catch (uploadError: any) {
+        console.error('[Cloudinary Upload Error]', uploadError);
+
+        // Atualizar sessão com erro
+        await prisma.session.update({
+          where: { id: session.id },
+          data: {
+            status: 'error',
+            errorMessage: `Erro ao fazer upload: ${uploadError.message}`,
+          },
+        });
+
+        return NextResponse.json(
+          { error: 'Erro ao fazer upload do arquivo para o Cloudinary' },
+          { status: 500 }
+        );
+      }
     }
 
     console.log(`[Session Created] ID: ${session.id}, Patient: ${patient.name}, Mode: ${recordingMode}`);
